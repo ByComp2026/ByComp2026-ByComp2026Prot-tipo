@@ -11,10 +11,12 @@ import {
   Calendar,
   Layers,
   User,
-  SlidersHorizontal
+  SlidersHorizontal,
+  FileCheck
 } from 'lucide-react';
 import { SMART_SPREADSHEET_DATA, SECTORS } from '../../data/mockData';
 import { ActivityRecord, Priority, Sector } from '../../types';
+import { exportActivitiesToExcel } from '../../utils/excelExport';
 
 export const SmartSpreadsheetView: React.FC = () => {
   const [data, setData] = useState<ActivityRecord[]>(SMART_SPREADSHEET_DATA);
@@ -76,11 +78,19 @@ export const SmartSpreadsheetView: React.FC = () => {
 
   const handleExport = () => {
     setExporting(true);
-    setTimeout(() => {
+    try {
+      // Generates and triggers actual browser download of .xlsx
+      exportActivitiesToExcel(
+        filteredData,
+        `Base_de_Atividades_ByComp_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
       setExporting(false);
       setExportNotice(true);
-      setTimeout(() => setExportNotice(false), 4000);
-    }, 700);
+      setTimeout(() => setExportNotice(false), 5000);
+    } catch (err) {
+      console.error('Erro ao gerar Excel:', err);
+      setExporting(false);
+    }
   };
 
   const resetFilters = () => {
@@ -137,15 +147,17 @@ export const SmartSpreadsheetView: React.FC = () => {
       {exportNotice && (
         <div 
           id="export-toast-banner"
-          className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 flex items-center justify-between animate-in fade-in duration-200"
+          className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 flex items-center justify-between animate-in fade-in duration-200 shadow-xl"
         >
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className="text-xs font-semibold">
-              Arquivo <strong className="text-white font-mono">Base_de_Atividades_ByComp_16092026.xlsx</strong> gerado com sucesso com {filteredData.length} registros filtrados!
+              Download do arquivo Excel <strong className="text-white font-mono">.xlsx</strong> iniciado com sucesso contendo os {filteredData.length} registros selecionados!
             </span>
           </div>
-          <span className="text-[11px] font-mono text-emerald-300">Simulação de Download Concluída</span>
+          <span className="text-[11px] font-mono text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700/60">
+            Download Concluído
+          </span>
         </div>
       )}
 

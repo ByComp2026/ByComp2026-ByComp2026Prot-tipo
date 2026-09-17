@@ -74,7 +74,8 @@ export const PresentationNavigatorModal: React.FC<QuickJumpModalProps> = ({
     { id: 'equipamentos', number: 19, name: 'Tela 19 • Inventário de Equipamentos', category: 'Infraestrutura', description: 'Gestão patrimonial de notebooks, servidores e termos de cautela', icon: HardDrive },
     { id: 'colaboradores', number: 20, name: 'Tela 20 • Equipe (48 Colaboradores)', category: 'Pessoas', description: 'Diretório completo de colaboradores distribuídos pelos 8 setores de TI', icon: Users },
     { id: 'auditoria', number: 21, name: 'Tela 21 • Trilha de Auditoria & Segurança', category: 'Governança', description: 'Syslog corporativo imutável para compliance, acessos e LGPD', icon: ShieldCheck },
-    { id: 'visao_geral', number: 22, name: 'Tela 22 • Visão Geral da Plataforma', category: 'Executivo', description: 'Diagrama visual do ecossistema integrado: tudo conectado em uma única plataforma', icon: Compass }
+    { id: 'visao_geral', number: 22, name: 'Tela 22 • Visão Geral da Plataforma', category: 'Executivo', description: 'Diagrama visual do ecossistema integrado: tudo conectado em uma única plataforma', icon: Compass },
+    { id: 'design_system', number: 23, name: 'Fase 2 • UX/UI Design System & Wireframes', category: 'Design UX/UI', description: 'Mapa de navegação interativo, wireframes responsivos e design system corporativo', icon: Sparkles }
   ];
 
   const filteredScreens = screens.filter(s => 

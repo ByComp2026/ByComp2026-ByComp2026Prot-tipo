@@ -338,7 +338,7 @@ export const MarketingHubView: React.FC = () => {
               </div>
 
               <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400">
-                A IA do NEXUS criará um gancho de 3 segundos, 3 tópicos didáticos e CTA para captação de clientes B2B.
+                A IA do ByComp criará um gancho de 3 segundos, 3 tópicos didáticos e CTA para captação de clientes B2B.
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">

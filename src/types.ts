@@ -258,4 +258,5 @@ export type ViewScreen =
   | 'auditoria'
   | 'organograma'
   | 'visao_geral'
+  | 'design_system'
   | 'configuracoes';

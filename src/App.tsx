@@ -28,6 +28,7 @@ import { EquipmentView } from './components/views/EquipmentView';
 import { CollaboratorsView } from './components/views/CollaboratorsView';
 import { AuditLogView } from './components/views/AuditLogView';
 import { VisionOverviewView } from './components/views/VisionOverviewView';
+import { DesignSystemNavMapView } from './components/views/DesignSystemNavMapView';
 import { RoleSimulatorModal } from './components/RoleSimulatorModal';
 import { checkScreenAccess } from './data/authCredentials';
 import { Presentation, BookOpen, ChevronRight, ChevronLeft, ShieldAlert, Lock, Crown, Key, Sparkles, Shield } from 'lucide-react';
@@ -144,7 +145,8 @@ export default function App() {
     'equipamentos',
     'colaboradores',
     'auditoria',
-    'visao_geral'
+    'visao_geral',
+    'design_system'
   ];
 
   const currentScreenIndex = screenOrder.indexOf(currentScreen);
@@ -308,6 +310,8 @@ export default function App() {
             onOpenGuide={() => setIsGuideModalOpen(true)}
           />
         );
+      case 'design_system':
+        return <DesignSystemNavMapView onNavigate={setCurrentScreen} />;
       default:
         return <DashboardView onNavigate={setCurrentScreen} />;
     }

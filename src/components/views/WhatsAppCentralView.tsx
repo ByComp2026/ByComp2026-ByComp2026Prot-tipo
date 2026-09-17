@@ -37,7 +37,7 @@ export const WhatsAppCentralView: React.FC = () => {
 
     const newMsg = {
       id: `msg-${Date.now()}`,
-      sender: 'NEXUS TI (Atendente)',
+      sender: 'ByComp (Atendente)',
       text: replyText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: true

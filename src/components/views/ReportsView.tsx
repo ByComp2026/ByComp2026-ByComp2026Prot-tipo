@@ -116,7 +116,7 @@ export const ReportsView: React.FC = () => {
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>
-              Documento executivo <strong className="font-mono">Relatorio_Produtividade_NEXUS_TI_16092026.pdf</strong> gerado com sucesso!
+              Documento executivo <strong className="font-mono">Relatorio_Produtividade_ByComp_16092026.pdf</strong> gerado com sucesso!
             </span>
           </div>
           <span className="text-[11px] font-mono text-emerald-300">Simulação Concluída</span>
@@ -131,7 +131,7 @@ export const ReportsView: React.FC = () => {
             <span>Resumo Executivo Gerado por IA</span>
           </div>
           <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">
-            NEXUS LLM Engine
+            ByComp LLM Engine
           </span>
         </div>
 

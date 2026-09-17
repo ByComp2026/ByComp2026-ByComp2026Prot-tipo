@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import {
   Users,
   UserCheck,
+  UserX,
+  Coffee,
   CheckSquare,
   AlertCircle,
   PhoneCall,
@@ -16,14 +18,23 @@ import {
   RefreshCw,
   Sparkles,
   Kanban,
-  ShieldCheck
+  ShieldCheck,
+  Calendar,
+  Layers,
+  Database,
+  Shield,
+  FileSpreadsheet,
+  Briefcase,
+  SlidersHorizontal,
+  Flame
 } from 'lucide-react';
 import { ViewScreen } from '../../types';
 import {
   SECTOR_PRODUCTIVITY,
   TASK_STATUS_BREAKDOWN,
   RECENT_ACTIVITIES,
-  MOCK_ALERTS
+  MOCK_ALERTS,
+  MOCK_CALENDAR_EVENTS
 } from '../../data/mockData';
 
 interface DashboardViewProps {
@@ -31,123 +42,235 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
+  const [dashboardMode, setDashboardMode] = useState<'operacional' | 'executivo'>('operacional');
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
-  const kpis = [
+  // General KPIs
+  const operationalKPIs = [
     {
       id: 'kpi-colabs',
-      title: 'Colaboradores',
-      value: '48',
-      label: '7 setores cadastrados',
+      title: 'Colaboradores Ativos',
+      value: '37',
+      label: '4 ausentes • 7 intervalo (48 total)',
       icon: Users,
       color: 'from-blue-500/20 to-cyan-500/10 border-blue-500/30 text-cyan-400',
       action: 'colaboradores' as ViewScreen
     },
     {
-      id: 'kpi-atividade',
-      title: 'Em atividade',
-      value: '37',
-      label: '77% da equipe em produção',
-      icon: UserCheck,
-      color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
-      action: 'colaboradores' as ViewScreen
-    },
-    {
       id: 'kpi-tarefas',
-      title: 'Tarefas',
+      title: 'Tarefas Ativas',
       value: '126',
-      label: '58 concluídas esta semana',
+      label: '18 pendentes • 3 atrasadas • 58 feitas',
       icon: CheckSquare,
       color: 'from-indigo-500/20 to-blue-500/10 border-indigo-500/30 text-indigo-400',
       action: 'meu_kanban' as ViewScreen
     },
     {
-      id: 'kpi-pendencias',
-      title: 'Pendências',
-      value: '18',
-      label: '3 prioritárias hoje',
-      icon: AlertCircle,
-      color: 'from-amber-500/20 to-orange-500/10 border-amber-500/30 text-amber-400',
+      id: 'kpi-demandas',
+      title: 'Demandas & Chamados',
+      value: '32',
+      label: '14 abertas • 12 andamento • 6 resolvidas',
+      icon: PhoneCall,
+      color: 'from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-400',
+      action: 'chamados' as ViewScreen
+    },
+    {
+      id: 'kpi-ponto',
+      title: 'Controle de Ponto',
+      value: '44',
+      label: 'Presentes hoje • 3 atrasos • 5 HE',
+      icon: Clock,
+      color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
+      action: 'registro_ponto' as ViewScreen
+    },
+    {
+      id: 'kpi-horas',
+      title: 'Horas Apontadas',
+      value: '296h',
+      label: 'Atividades registradas na semana',
+      icon: Activity,
+      color: 'from-teal-500/20 to-emerald-500/10 border-teal-500/30 text-teal-400',
+      action: 'planilhas' as ViewScreen
+    },
+    {
+      id: 'kpi-produtividade',
+      title: 'Produtividade Geral',
+      value: '93.2%',
+      label: 'SLA consolidado da TI ByComp',
+      icon: TrendingUp,
+      color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-400',
+      action: 'relatorios' as ViewScreen
+    }
+  ];
+
+  // Executive Pillars (Requirement 28: Dashboard Executivo para Gestores)
+  const executivePillars = [
+    {
+      id: 'exec-empresa',
+      pillar: 'EMPRESA',
+      title: 'Colaboradores Ativos',
+      metric: '37 / 48 em Produção',
+      subtext: '4 Ausentes • 7 em Intervalo • 100% dos 7 setores operando',
+      icon: Users,
+      badge: 'Normal',
+      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      action: 'colaboradores' as ViewScreen
+    },
+    {
+      id: 'exec-operacao',
+      pillar: 'OPERAÇÃO',
+      title: 'Chamados & SLA',
+      metric: '32 Demandas Ativas',
+      subtext: 'SLA médio consolidado em 97.4% • 0 chamados críticos sem técnico',
+      icon: PhoneCall,
+      badge: '97.4% SLA',
+      badgeColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
+      action: 'chamados' as ViewScreen
+    },
+    {
+      id: 'exec-produtividade',
+      pillar: 'PRODUTIVIDADE',
+      title: 'Tarefas & Entregas',
+      metric: '58 Entregas na Semana',
+      subtext: '18 Pendências • 3 Atrasadas leves • Ciclo médio 1.8 dias',
+      icon: CheckSquare,
+      badge: 'Alta Performance',
+      badgeColor: 'bg-indigo-950 text-indigo-300 border-indigo-800',
       action: 'meu_kanban' as ViewScreen
     },
     {
-      id: 'kpi-chamados',
-      title: 'Chamados',
-      value: '32',
-      label: 'SLA médio 97.4%',
-      icon: PhoneCall,
-      color: 'from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-400',
+      id: 'exec-ponto',
+      pillar: 'PONTO ELETRÔNICO',
+      title: 'Presença & Assiduidade',
+      metric: '91.8% Frequência',
+      subtext: '44 Presentes • 3 Atrasos justificados • 5 Horas Extras autorizadas',
+      icon: Clock,
+      badge: 'Auditado',
+      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      action: 'espelho_ponto' as ViewScreen
+    },
+    {
+      id: 'exec-dev',
+      pillar: 'DESENVOLVIMENTO',
+      title: 'Projetos em Curso',
+      metric: '4 Sprints em Andamento',
+      subtext: 'Portal ByComp, Core API v2, Mobile App e Mensageria Kafka',
+      icon: Layers,
+      badge: 'Sprint 14',
+      badgeColor: 'bg-blue-950 text-blue-300 border-blue-800',
       action: 'kanban_equipe' as ViewScreen
     },
     {
-      id: 'kpi-presenca',
-      title: 'Presença',
-      value: '91%',
-      label: 'Índice de assiduidade',
-      icon: Activity,
-      color: 'from-teal-500/20 to-emerald-500/10 border-teal-500/30 text-teal-400',
-      action: 'espelho_ponto' as ViewScreen
+      id: 'exec-seguranca',
+      pillar: 'SEGURANÇA (SOC)',
+      title: 'Alertas & Integridade',
+      metric: '0 Incidentes Críticos',
+      subtext: 'Firewalls e VPNs 100% estáveis • 2 avisos de latência BGP tratados',
+      icon: Shield,
+      badge: 'SOC Ativo',
+      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      action: 'auditoria' as ViewScreen
+    },
+    {
+      id: 'exec-dba',
+      pillar: 'BANCO DE DADOS',
+      title: 'Status dos Bancos',
+      metric: 'PostgreSQL 99.98% Up',
+      subtext: 'Replicação MongoDB OK • Particionamento executado • Backup 100%',
+      icon: Database,
+      badge: 'Saudável',
+      badgeColor: 'bg-teal-950 text-teal-300 border-teal-800',
+      action: 'planilhas' as ViewScreen
+    },
+    {
+      id: 'exec-adm',
+      pillar: 'ADMINISTRATIVO',
+      title: 'Pendências Corporativas',
+      metric: '1 Folha em Aprovação',
+      subtext: '2 Formulários de reembolso e 1 solicitação de insumo pendente',
+      icon: Briefcase,
+      badge: 'RH / Financeiro',
+      badgeColor: 'bg-amber-950 text-amber-300 border-amber-800',
+      action: 'formularios' as ViewScreen
     }
   ];
 
   const totalTasks = TASK_STATUS_BREAKDOWN.reduce((acc, curr) => acc + curr.count, 0);
 
+  // Breakdown of electronic time clock for today
+  const timeClockStats = [
+    { label: 'Presentes', count: 44, icon: UserCheck, color: 'text-emerald-400 bg-emerald-950/60 border-emerald-800' },
+    { label: 'Ausentes', count: 4, icon: UserX, color: 'text-slate-400 bg-slate-900 border-slate-800' },
+    { label: 'Atrasados', count: 3, icon: AlertCircle, color: 'text-amber-400 bg-amber-950/60 border-amber-800' },
+    { label: 'Em Intervalo', count: 7, icon: Coffee, color: 'text-cyan-400 bg-cyan-950/60 border-cyan-800' },
+    { label: 'Hora Extra', count: 5, icon: Flame, color: 'text-rose-400 bg-rose-950/60 border-rose-800' }
+  ];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 rounded-2xl border border-slate-800 shadow-xl">
+    <div className="space-y-6 animate-in fade-in duration-300" id="main-dashboard-container">
+      {/* Welcome Header & View Mode Switcher */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 rounded-3xl border border-slate-800 shadow-xl">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
-              Bom dia, Victor 👋
+              ByComp — Gestão Integrada
             </h1>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              Gestão Ativa
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              100% Monitorada
             </span>
           </div>
           <p className="text-sm text-slate-400 mt-1">
-            Aqui está o panorama da empresa hoje.
+            Painel unificado conectando Administração, Suporte, Desenvolvimento, Dados e Segurança.
           </p>
         </div>
 
-        {/* Action shortcut pills */}
+        {/* Mode Toggle & UX/UI Shortcut */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => onNavigate('registro_atividades')}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
-          >
-            <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Registrar Atividade</span>
-          </button>
+          {/* Dashboard Mode Selector */}
+          <div className="flex items-center p-1 bg-slate-950 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setDashboardMode('operacional')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                dashboardMode === 'operacional'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Visão Operacional
+            </button>
+            <button
+              onClick={() => setDashboardMode('executivo')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                dashboardMode === 'executivo'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Visão Executiva (Gestão)
+            </button>
+          </div>
 
           <button
-            onClick={() => onNavigate('kanban_equipe')}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+            onClick={() => onNavigate('design_system')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800 text-purple-200 text-xs font-bold transition-all cursor-pointer"
+            title="Acessar Wireframes, Mapa de Navegação e Design System (Fase 2)"
           >
-            <Kanban className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Quadro da Equipe</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('ai_hub')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
-            <span>Consultar AI Hub</span>
+            <Layers className="w-3.5 h-3.5 text-purple-300" />
+            <span>Fase 2: UX/UI Design</span>
           </button>
         </div>
       </div>
 
-      {/* 6 Key KPI Cards */}
+      {/* 6 KEY OPERATIONAL KPIS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {kpis.map((kpi) => {
+        {operationalKPIs.map((kpi) => {
           const Icon = kpi.icon;
           return (
             <div
               key={kpi.id}
               id={kpi.id}
               onClick={() => onNavigate(kpi.action)}
-              className={`p-4 rounded-xl border bg-slate-900/80 hover:bg-slate-850 hover:border-slate-700 transition-all cursor-pointer group shadow-sm hover:shadow-md relative overflow-hidden`}
+              className="p-4 rounded-2xl border bg-slate-900/80 hover:bg-slate-850 hover:border-slate-700 transition-all cursor-pointer group shadow-sm hover:shadow-md relative overflow-hidden"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors truncate">
@@ -168,21 +291,134 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         })}
       </div>
 
+      {/* CONDITIONAL RENDERING: VISÃO EXECUTIVA (GESTOR/DIRETORIA) */}
+      {dashboardMode === 'executivo' && (
+        <div className="space-y-6 animate-in fade-in duration-200" id="executive-pillars-grid">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Os 8 Pilares da Gestão Executiva ByComp
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Monitoramento consolidado para tomada de decisão ágil sem ruído técnico.
+              </p>
+            </div>
+
+            <span className="text-xs font-mono text-cyan-300 bg-cyan-950 border border-cyan-800 px-3 py-1 rounded-full">
+              Visão Gerencial Ativa
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {executivePillars.map((ep) => {
+              const Icon = ep.icon;
+              return (
+                <div
+                  key={ep.id}
+                  onClick={() => onNavigate(ep.action)}
+                  className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-850 transition-all cursor-pointer shadow-lg flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-mono text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                        {ep.pillar}
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${ep.badgeColor}`}>
+                        {ep.badge}
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-3 mb-2">
+                      <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white group-hover:text-cyan-200 transition-colors">
+                          {ep.title}
+                        </h3>
+                        <div className="text-lg font-black text-slate-100 mt-0.5">
+                          {ep.metric}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed mt-2">
+                      {ep.subtext}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                    <span className="text-[11px] group-hover:text-slate-300">Explorar módulo</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* CONTROLE DE PONTO ELETRÔNICO HOJE */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Status do Ponto Eletrônico Hoje (48 Colaboradores)
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Jornada de trabalho acompanhada em tempo real com tolerância legal de 10 min.
+            </p>
+          </div>
+
+          <button
+            onClick={() => onNavigate('gestao_ponto')}
+            className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 self-start sm:self-center"
+          >
+            <span>Gerenciar Ponto (Admin)</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {timeClockStats.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={idx}
+                className={`p-3.5 rounded-2xl border ${item.color} flex items-center justify-between`}
+              >
+                <div>
+                  <span className="text-xs font-semibold block opacity-80">{item.label}</span>
+                  <div className="text-xl font-black text-white mt-0.5">{item.count}</div>
+                </div>
+                <Icon className="w-5 h-5 opacity-80" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* GRÁFICO — PRODUTIVIDADE POR SETOR (7 cols) */}
-        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-cyan-400" />
-                <h3 className="font-bold text-sm text-white">PRODUTIVIDADE POR SETOR</h3>
+                <h3 className="font-bold text-sm text-white">PRODUTIVIDADE POR SETOR (SLA)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Desempenho operacional, entregas concluídas e SLA médio
+                N1, N2, N3, Front-End, Back-End, Cyber Security e DBA
               </p>
             </div>
-            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-800/80 px-2 py-0.5 rounded-md">
+            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-800/80 px-2.5 py-0.5 rounded-full">
               7 Setores Ativos
             </span>
           </div>
@@ -190,11 +426,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           {/* Visual Sector Bar Chart */}
           <div className="space-y-3.5 my-2">
             {SECTOR_PRODUCTIVITY.map((sec) => (
-              <div 
+              <div
                 key={sec.sector}
                 onMouseEnter={() => setSelectedSector(sec.sector)}
                 onMouseLeave={() => setSelectedSector(null)}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
                   selectedSector === sec.sector ? 'bg-slate-800/80' : 'hover:bg-slate-800/40'
                 }`}
               >
@@ -206,7 +442,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono text-slate-400">SLA: {sec.SLA}</span>
+                    <span className="text-[11px] font-mono text-slate-400">Meta: {sec.SLA}</span>
                     <span className="font-mono font-bold text-cyan-400 text-xs">
                       {sec.score}%
                     </span>
@@ -237,19 +473,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
 
         {/* GRÁFICO — STATUS DAS TAREFAS (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-bold text-sm text-white">STATUS DAS TAREFAS</h3>
+                <h3 className="font-bold text-sm text-white">STATUS DAS TAREFAS (126 TOTAL)</h3>
               </div>
               <span className="text-xs font-mono font-semibold text-slate-400">
-                Total: {totalTasks}
+                100% Pipeline
               </span>
             </div>
             <p className="text-xs text-slate-400 mb-4">
-              Distribuição de demandas em todo o pipeline
+              Distribuição: Pendentes, Em andamento, Em revisão, Concluídas e Atrasadas
             </p>
 
             {/* Visual breakdown horizontal stacked meter */}
@@ -268,13 +504,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             </div>
 
             {/* Legend & Breakdown rows */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {TASK_STATUS_BREAKDOWN.map((st) => {
                 const pct = ((st.count / totalTasks) * 100).toFixed(0);
                 return (
                   <div
                     key={st.name}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/80 text-xs"
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs"
                   >
                     <div className="flex items-center gap-2.5">
                       <span
@@ -306,20 +542,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Bottom Row: ATIVIDADES RECENTES (8 cols) & ALERTAS (4 cols) */}
+      {/* Bottom Row: ATIVIDADES DA SEMANA & AGENDA & ALERTAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ATIVIDADES RECENTES */}
-        <div className="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg">
+        {/* ATIVIDADES RECENTES (7 cols) */}
+        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-cyan-400" />
-              <h3 className="font-bold text-sm text-white">ATIVIDADES RECENTES</h3>
+              <h3 className="font-bold text-sm text-white">ATIVIDADES DA SEMANA & REGISTROS</h3>
             </div>
             <button
               onClick={() => onNavigate('planilhas')}
               className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
             >
-              <span>Ver todas na Base de Atividades</span>
+              <span>Base Completa de Atividades</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -328,9 +564,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             {RECENT_ACTIVITIES.map((act, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-700 transition-colors"
               >
-                <span className="font-mono text-xs font-bold text-cyan-400 px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 shrink-0">
+                <span className="font-mono text-xs font-bold text-cyan-400 px-2 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 shrink-0">
                   {act.time}
                 </span>
 
@@ -340,7 +576,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   </p>
                 </div>
 
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 shrink-0">
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 shrink-0">
                   {act.sector}
                 </span>
               </div>
@@ -348,18 +584,50 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* ALERTAS */}
-        <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        {/* AGENDA DO DIA & ALERTAS (5 cols) */}
+        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            {/* AGENDA HOJE */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-teal-400" />
+                <h3 className="font-bold text-sm text-white">AGENDA DO DIA</h3>
+              </div>
+              <button
+                onClick={() => onNavigate('agenda')}
+                className="text-[11px] text-teal-400 hover:underline"
+              >
+                Ver calendário
+              </button>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {MOCK_CALENDAR_EVENTS.slice(0, 2).map((ev) => (
+                <div
+                  key={ev.id}
+                  className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs flex items-center justify-between"
+                >
+                  <div>
+                    <span className="font-semibold text-slate-200 block">{ev.title}</span>
+                    <span className="text-[11px] text-slate-400">{ev.location} • {ev.type}</span>
+                  </div>
+                  <span className="font-mono text-teal-400 font-bold px-2 py-0.5 rounded bg-teal-950/80 border border-teal-800 text-[10px]">
+                    {ev.time}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* ALERTAS */}
+            <div className="flex items-center justify-between mb-3 pt-3 border-t border-slate-800">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <h3 className="font-bold text-sm text-white">ALERTAS ATIVOS</h3>
+                <h3 className="font-bold text-sm text-white">ALERTAS & NOTIFICAÇÕES</h3>
               </div>
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {MOCK_ALERTS.map((alert) => (
                 <div
                   key={alert.id}
@@ -375,27 +643,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   )}
                   <div>
-                    <p className="font-semibold text-sm">{alert.text}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{alert.time}</p>
+                    <p className="font-semibold text-xs">{alert.text}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{alert.time}</p>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="mt-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
-              <span className="font-semibold text-slate-300 block mb-1">Ação Preventiva Sugerida:</span>
-              <span>
-                Atribuir chamado crítico pendente ao Suporte N3 e antecipar revisão de backup.
-              </span>
             </div>
           </div>
 
           <button
             onClick={() => onNavigate('auditoria')}
-            className="w-full mt-4 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Consultar Log de Auditoria</span>
+            <span>Consultar Log de Auditoria & Segurança</span>
           </button>
         </div>
       </div>

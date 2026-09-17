@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Zap,
   Lock,
-  KeyRound
+  KeyRound,
+  Layers
 } from 'lucide-react';
 import { ViewScreen, Collaborator } from '../types';
 import { CURRENT_USER } from '../data/mockData';
@@ -75,6 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'visao_geral', label: 'Central de Gestão', icon: Compass, badge: 'Executivo' },
+        { id: 'design_system', label: 'UX/UI & Design System', icon: Layers, badge: 'Fase 2', highlight: true },
         { id: 'organograma', label: 'Organograma', icon: Network },
         { id: 'colaboradores', label: 'Colaboradores', icon: Users, badge: 48 }
       ]
@@ -87,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'kanban_equipe', label: 'Kanban da Equipe', icon: Kanban, badge: 'N2' },
         { id: 'visao_semanal', label: 'Planejamento Semanal', icon: Calendar },
         { id: 'planilhas', label: 'Base de Atividades', icon: FileSpreadsheet },
-        { id: 'formularios', label: 'Formulários', icon: FolderEdit },
+        { id: 'formularios', label: 'Formulários & Banco', icon: FolderEdit, badge: 'Excel' },
         { id: 'registro_atividades', label: 'Registrar Atividade', icon: FileText }
       ]
     },

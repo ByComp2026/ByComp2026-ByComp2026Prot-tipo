@@ -13,7 +13,8 @@ import {
   UserCog,
   Users,
   ChevronDown,
-  Key
+  Key,
+  Sparkles
 } from 'lucide-react';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
@@ -37,8 +38,8 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   meu_kanban: { title: 'Meu Kanban', subtitle: 'Fluxo individual de trabalho', category: 'Operação' },
   kanban_equipe: { title: 'Kanban da Equipe', subtitle: 'Suporte N2 • Semana 14/09 a 20/09/2026', category: 'Operação' },
   visao_semanal: { title: 'Planejamento Semanal', subtitle: 'Distribuição de atividades por dia', category: 'Operação' },
-  planilhas: { title: 'Base de Atividades', subtitle: 'Planilha inteligente com filtros e exportação', category: 'Operação' },
-  formularios: { title: 'Central de Formulários', subtitle: 'Modelos padronizados de registros', category: 'Operação' },
+  planilhas: { title: 'Base de Atividades', subtitle: 'Planilha inteligente com filtros e exportação Excel', category: 'Operação' },
+  formularios: { title: 'Formulários e Banco de Dados', subtitle: 'Cadastros padronizados e exportação Excel (.xlsx)', category: 'Operação & Dados' },
   registro_atividades: { title: 'Registrar Atividade', subtitle: 'Apontamento técnico de esforço e status', category: 'Operação' },
   registro_ponto: { title: 'Registro de Ponto Eletrônico', subtitle: 'Controle de jornada com simulação biométrica', category: 'Pessoas & Ponto' },
   espelho_ponto: { title: 'Espelho de Ponto', subtitle: 'Consolidação mensal e horas trabalhadas', category: 'Pessoas & Ponto' },
@@ -56,7 +57,8 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   gerador_video: { title: 'AI Video Studio', subtitle: 'Pipeline conceitual de geração de vídeos', category: 'Inteligência' },
   relatorios: { title: 'Central de Relatórios', subtitle: 'Indicadores de produtividade, ponto e SLAs', category: 'Governança' },
   auditoria: { title: 'Auditoria do Sistema', subtitle: 'Trilhas de auditoria, logs e conformidade', category: 'Governança' },
-  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos do protótipo', category: 'Governança' }
+  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos do protótipo', category: 'Governança' },
+  design_system: { title: 'UX/UI & Design System', subtitle: 'Arquitetura de Navegação, Wireframes e Tokens Visuais', category: 'Fase 2' }
 };
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -128,6 +130,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Zap className="w-3.5 h-3.5 text-cyan-400" />
           <span className="hidden sm:inline">22 Telas</span>
           <span className="text-[10px] bg-cyan-900/80 px-1 py-0.2 rounded font-mono">Alt+K</span>
+        </button>
+
+        {/* Phase 2 UX/UI Design System Shortcut */}
+        <button
+          onClick={() => onSelectScreen('design_system')}
+          id="btn-navbar-design-system"
+          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-950/60 border border-purple-800/60 hover:border-purple-500 text-purple-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
+          title="Acessar Wireframes, Mapa de Navegação e Design System da Fase 2"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <span>Fase 2 UX/UI</span>
         </button>
 
         {/* Live Date & Time Widget */}

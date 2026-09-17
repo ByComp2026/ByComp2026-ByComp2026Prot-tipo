@@ -132,7 +132,7 @@ export const CollaboratorsView: React.FC = () => {
   // Handler: Create User
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    const formattedEmail = newUserEmail || `${newUserName.toLowerCase().replace(/\s+/g, '.')}@nexusti.com.br`;
+    const formattedEmail = newUserEmail || `${newUserName.toLowerCase().replace(/\s+/g, '.')}@bycomp.com.br`;
 
     const newUser: Collaborator = {
       id: `colab-${Date.now()}`,
@@ -145,7 +145,7 @@ export const CollaboratorsView: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       status: 'Em atividade',
       tasksCount: 1,
-      currentTask: 'Integração ao sistema corporativo NEXUS TI',
+      currentTask: 'Integração ao sistema corporativo ByComp',
       phone: newUserPhone,
       admissionDate: '16/09/2026',
       isBlocked: false
@@ -571,7 +571,7 @@ export const CollaboratorsView: React.FC = () => {
                   </div>
 
                   <span className="text-xs text-slate-400 font-mono">
-                    Área Corporativa NEXUS TI
+                    Área Corporativa ByComp
                   </span>
                 </div>
 
@@ -653,7 +653,7 @@ export const CollaboratorsView: React.FC = () => {
               Matriz Oficial de Controle de Acesso por Função (RBAC)
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Definições de permissões estritas para conformidade com a governança da NEXUS TI.
+              Definições de permissões estritas para conformidade com a governança da ByComp.
             </p>
           </div>
 
@@ -761,7 +761,7 @@ export const CollaboratorsView: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    placeholder="gabriela.costa@nexusti.com.br"
+                    placeholder="gabriela.costa@bycomp.com.br"
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"

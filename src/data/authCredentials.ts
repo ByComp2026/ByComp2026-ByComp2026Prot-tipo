@@ -444,6 +444,14 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     allowedRoles: ['SUPER_ADMIN'],
     restrictionReason: 'Parâmetros de infraestrutura, portas de rede, chaves de API e variáveis de ambiente são de acesso EXCLUSIVO do SUPER ADMINISTRADOR.',
     recommendedRoleToTest: 'SUPER_ADMIN'
+  },
+  design_system: {
+    screen: 'design_system',
+    screenTitle: 'Design System & Mapa UX/UI (Fase 2)',
+    category: 'ARQUITETURA',
+    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
+    restrictionReason: 'Documentação visual, wireframes e mapa de navegação interativo aberto a todas as personas.',
+    recommendedRoleToTest: 'SUPER_ADMIN'
   }
 };
 

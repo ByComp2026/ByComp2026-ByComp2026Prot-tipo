@@ -17,7 +17,7 @@ import { AuditLogItem } from '../../types';
 const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
   { id: 'aud-1', timestamp: '16/09/2026 09:42:15', severity: 'Info', user: 'Lucas Martins', actionType: 'Acesso', description: 'Varredura periódica de portas concluída sem vulnerabilidades críticas', ip: '192.168.10.14' },
   { id: 'aud-2', timestamp: '16/09/2026 09:35:00', severity: 'Info', user: 'Victor Estevão', actionType: 'Chamado', description: 'Atribuição do chamado #1082 (Falha gateway) para fila N2', ip: '192.168.10.45' },
-  { id: 'aud-3', timestamp: '16/09/2026 09:20:10', severity: 'Warning', user: 'Sistema NEXUS', actionType: 'Sistema', description: 'Alerta de pico de latência no link BGP primário (Datacenter SP01)', ip: '10.0.0.1' },
+  { id: 'aud-3', timestamp: '16/09/2026 09:20:10', severity: 'Warning', user: 'Sistema ByComp', actionType: 'Sistema', description: 'Alerta de pico de latência no link BGP primário (Datacenter SP01)', ip: '10.0.0.1' },
   { id: 'aud-4', timestamp: '16/09/2026 08:45:00', severity: 'Info', user: 'Helena Santos', actionType: 'Acesso', description: 'Aprovação de solicitação interna de equipamento PAT-0138', ip: '192.168.10.22' },
   { id: 'aud-5', timestamp: '16/09/2026 08:02:18', severity: 'Info', user: 'Victor Estevão', actionType: 'Ponto', description: 'Registro de ponto eletrônico com validação biométrica', ip: '192.168.10.45' },
   { id: 'aud-6', timestamp: '16/09/2026 08:00:04', severity: 'Info', user: 'Camila Rocha', actionType: 'Ponto', description: 'Registro de entrada normal homologado', ip: '192.168.10.88' },
