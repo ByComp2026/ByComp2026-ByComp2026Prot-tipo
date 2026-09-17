@@ -35,14 +35,39 @@ import {
   Flame,
   CheckSquare
 } from 'lucide-react';
-import { ViewScreen, UserRole } from '../../types';
+import { ViewScreen, UserRole, Collaborator } from '../../types';
 import { SCREEN_SECURITY_POLICIES } from '../../data/authCredentials';
+import { PrivateAccessLock } from './collaborators/PrivateAccessLock';
 
 interface DesignSystemNavMapViewProps {
   onNavigate: (screen: ViewScreen) => void;
+  currentUser?: Collaborator;
+  onSwitchUser?: (user: Collaborator) => void;
 }
 
-export const DesignSystemNavMapView: React.FC<DesignSystemNavMapViewProps> = ({ onNavigate }) => {
+export const DesignSystemNavMapView: React.FC<DesignSystemNavMapViewProps> = ({
+  onNavigate,
+  currentUser,
+  onSwitchUser
+}) => {
+  // Check access: Only GESTOR, ADMINISTRATIVO and SUPER_ADMIN are authorized
+  const activeUserRole = currentUser?.userRole || 'COLABORADOR';
+  const isAllowed =
+    activeUserRole === 'SUPER_ADMIN' ||
+    activeUserRole === 'ADMINISTRATIVO' ||
+    activeUserRole === 'GESTOR';
+
+  if (!isAllowed) {
+    return (
+      <PrivateAccessLock
+        phaseNumber={2}
+        currentUser={currentUser}
+        onSwitchUser={onSwitchUser}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+
   const [activeTab, setActiveTab] = useState<'navmap' | 'wireframes' | 'designsystem' | 'matrix'>('navmap');
   const [wireframeViewport, setWireframeViewport] = useState<'desktop' | 'notebook' | 'tablet'>('desktop');
   const [selectedWorkflowStep, setSelectedWorkflowStep] = useState<number>(0);
@@ -57,8 +82,8 @@ export const DesignSystemNavMapView: React.FC<DesignSystemNavMapViewProps> = ({ 
         { id: 'login' as ViewScreen, title: 'Autenticação & Login', icon: Lock, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'Single Screen Centered Modal' },
         { id: 'dashboard' as ViewScreen, title: 'Dashboard Geral (Executivo & Operacional)', icon: Layout, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: '12-Col Responsive Bento Grid' },
         { id: 'visao_geral' as ViewScreen, title: 'Central de Gestão (Hub Geral)', icon: Compass, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: 'Hero + Multi-Card Matrix' },
-        { id: 'organograma' as ViewScreen, title: 'Organograma Institucional', icon: GitBranch, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'Hierarchical Tree Chart' },
-        { id: 'colaboradores' as ViewScreen, title: 'Quadro Geral de Colaboradores', icon: Users, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: 'Data Table + Side Profile Drawer' }
+        { id: 'organograma' as ViewScreen, title: 'Organograma Institucional (Fase 3 • Privada)', icon: GitBranch, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: 'Hierarchical Tree Chart' },
+        { id: 'colaboradores' as ViewScreen, title: 'Quadro Geral de Colaboradores (Fase 4 • Privada)', icon: Users, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: 'Data Table + Side Profile Drawer' }
       ]
     },
     {
@@ -198,17 +223,37 @@ export const DesignSystemNavMapView: React.FC<DesignSystemNavMapViewProps> = ({ 
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/50 p-6 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold tracking-wide mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>FASE 2 — UX/UI & ARQUITETURA VISUAL</span>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-600 text-emerald-300 text-xs font-mono font-bold tracking-wide">
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                FASE 2 • TELA PRIVADA (GESTÃO, ADM & RH)
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-mono">
+                SIGILO DE PRODUTO & ARQUITETURA
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               Design System, Wireframes & Mapa de Navegação
             </h1>
             <p className="text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              Estrutura ergonômica corporativa, arquitetura de informação com as 22 telas navegáveis,
-              fluxos operacionais intersetoriais e especificações visuais para a ByComp.
+              Ambiente de arquitetura restrito a Gestão, Administração e RH: estrutura ergonômica corporativa, fluxo das 22 telas navegáveis e especificações visuais para a ByComp.
             </p>
+
+            {currentUser && (
+              <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 w-fit text-xs text-slate-300 mt-3">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500"
+                />
+                <span>
+                  Operador Autorizado: <strong className="text-white">{currentUser.name}</strong>
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                  {currentUser.userRole}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Quick Tab Switcher */}

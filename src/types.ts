@@ -44,6 +44,13 @@ export interface Collaborator {
   tasksCount?: number;
   isBlocked?: boolean;
   customPermissions?: string[];
+  contractType?: 'CLT' | 'PJ' | 'Estágio';
+  salaryBracket?: string;
+  workSchedule?: string;
+  asoStatus?: 'Em dia' | 'A renovar' | 'Pendente';
+  benefits?: string[];
+  cpfMasked?: string;
+  emergencyContact?: string;
 }
 
 export interface Task {
@@ -134,14 +141,51 @@ export interface ClientEntity {
   status: string;
 }
 
+export interface TicketHistoryItem {
+  timestamp: string;
+  action: string;
+  user: string;
+  userSector?: string;
+  details?: string;
+}
+
 export interface SupportTicket {
   id: string;
   client: string;
   subject: string;
   sector: Sector;
+  assignedTo?: string;
+  assignedAvatar?: string;
   priority: Priority;
   status: 'Aberto' | 'Em atendimento' | 'Aguardando' | 'Resolvido';
   openTime: string;
+  serviceType?: string;
+  resolutionSummary?: string;
+  knowledgeBaseId?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolvedSector?: string;
+  resolutionTimeSpent?: string;
+  history?: TicketHistoryItem[];
+  description?: string;
+  contactEmail?: string;
+  slaLimitHours?: number;
+}
+
+export interface KnowledgeArticle {
+  id: string;
+  code: string;
+  title: string;
+  sector: Sector;
+  serviceType: string;
+  category: 'Acessos & Identidade' | 'Redes & Conectividade' | 'Bancos de Dados' | 'Aplicações & APIs' | 'Infraestrutura & Nuvem' | 'Segurança & LGPD' | 'Hardware & Periféricos' | 'Sistemas & ERP';
+  summarySolution: string;
+  detailedProcedure: string[];
+  estimatedResolutionMinutes: number;
+  tags: string[];
+  usefulCount: number;
+  lastUpdated: string;
+  author: string;
 }
 
 export interface EquipmentItem {

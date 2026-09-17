@@ -21,23 +21,138 @@ import {
   Layers,
   Crown,
   UserCog,
-  Check
+  Check,
+  Network,
+  Eye,
+  EyeOff,
+  FileSpreadsheet,
+  Download,
+  ShieldAlert,
+  Sparkles,
+  Key,
+  DollarSign,
+  Stethoscope,
+  HeartPulse,
+  Clock,
+  BadgeCheck,
+  AlertTriangle,
+  X,
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 import {
   ALL_COLLABORATORS,
   INITIAL_ORGANIZATIONAL_SECTORS,
   ORGANIZATIONAL_AREAS,
-  ROLE_DEFINITIONS
+  ROLE_DEFINITIONS,
+  CURRENT_USER
 } from '../../data/mockData';
-import { Collaborator, UserRole, OrganizationalSector } from '../../types';
+import { AUTH_ACCOUNTS, convertCredentialToCollaborator } from '../../data/authCredentials';
+import { Collaborator, UserRole, OrganizationalSector, ViewScreen } from '../../types';
+import { exportHierarchyToExcel, exportPrivateHRDossierToExcel } from '../../utils/excelExport';
+import { PrivateAccessLock } from './collaborators/PrivateAccessLock';
+import { HRDossierTab } from './collaborators/HRDossierTab';
+import { CollaboratorDetailDrawer } from './collaborators/CollaboratorDetailDrawer';
 
-export const CollaboratorsView: React.FC = () => {
-  // Local state for collaborators and sectors so additions and modifications persist in this session
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(ALL_COLLABORATORS);
+interface CollaboratorsViewProps {
+  onNavigate?: (screen: ViewScreen) => void;
+  currentUser?: Collaborator;
+  onSwitchUser?: (user: Collaborator) => void;
+  onOpenSimulatorModal?: () => void;
+}
+
+// Helper to ensure all 48 collaborators have authentic HR data
+function enrichCollaboratorWithHRData(c: Collaborator, index: number): Collaborator {
+  let contractType: 'CLT' | 'PJ' | 'Estágio' = 'CLT';
+  let salaryBracket = 'R$ 4.200 - R$ 5.800';
+  let workSchedule = '40h semanais (08h às 17h)';
+  let asoStatus: 'Em dia' | 'A renovar' | 'Pendente' = 'Em dia';
+  let benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica Especial', 'Seguro de Vida MetLife'];
+
+  if (c.userRole === 'SUPER_ADMIN') {
+    contractType = 'PJ';
+    salaryBracket = 'R$ 24.500,00';
+    workSchedule = 'Dedicação Exclusiva / Diretoria';
+    benefits = ['Seguro Executivo D&O', 'Plano Black Saúde', 'Reembolso Combustível'];
+  } else if (c.userRole === 'ADMINISTRATIVO') {
+    contractType = 'CLT';
+    salaryBracket = 'R$ 13.800,00';
+    workSchedule = '40h semanais (08h às 17h)';
+    benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica Especial', 'Previdência Privada', 'Auxílio Creche'];
+  } else if (c.userRole === 'GESTOR') {
+    contractType = index % 3 === 0 ? 'PJ' : 'CLT';
+    salaryBracket = 'R$ 11.200 - R$ 14.500';
+    workSchedule = '40h semanais (09h às 18h)';
+    benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica Especial', 'Gympass', 'Auxílio Certificação'];
+  } else {
+    // Colaborador
+    if (c.role.toLowerCase().includes('estagiário') || c.role.toLowerCase().includes('estágio')) {
+      contractType = 'Estágio';
+      salaryBracket = 'R$ 2.100,00';
+      workSchedule = '30h semanais (09h às 15h)';
+      benefits = ['VR R$ 30/dia', 'VT', 'Seguro de Vida'];
+    } else if (
+      c.role.toLowerCase().includes('n3') ||
+      c.role.toLowerCase().includes('dba') ||
+      c.role.toLowerCase().includes('security') ||
+      c.role.toLowerCase().includes('senior')
+    ) {
+      contractType = 'CLT';
+      salaryBracket = 'R$ 8.900 - R$ 11.500';
+      workSchedule = '40h semanais (Escala 5x2)';
+      benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica', 'Bradesco Dental', 'Seguro de Vida'];
+    } else if (c.role.toLowerCase().includes('n2') || c.role.toLowerCase().includes('pleno')) {
+      contractType = 'CLT';
+      salaryBracket = 'R$ 5.800 - R$ 7.200';
+      workSchedule = '40h semanais (08h às 17h)';
+      benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica', 'Bradesco Dental'];
+    } else {
+      contractType = 'CLT';
+      salaryBracket = 'R$ 3.800 - R$ 4.600';
+      workSchedule = '40h semanais (Escala 5x2)';
+      benefits = ['VR R$ 45/dia', 'VT', 'Plano SulAmérica', 'Bradesco Dental'];
+    }
+  }
+
+  // 2 collaborateurs with ASO expiring soon for realistic management
+  if (index === 5 || index === 14) {
+    asoStatus = 'A renovar';
+  }
+
+  return {
+    ...c,
+    contractType: c.contractType || contractType,
+    salaryBracket: c.salaryBracket || salaryBracket,
+    workSchedule: c.workSchedule || workSchedule,
+    asoStatus: c.asoStatus || asoStatus,
+    benefits: c.benefits || benefits,
+    cpfMasked:
+      c.cpfMasked ||
+      `***.${String(100 + ((index * 17) % 900)).padStart(3, '0')}.${String(
+        200 + ((index * 23) % 900)
+      ).padStart(3, '0')}-**`,
+    emergencyContact: c.emergencyContact || `(11) 98711-${String(1000 + index)}`
+  };
+}
+
+export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
+  onNavigate,
+  currentUser = CURRENT_USER,
+  onSwitchUser,
+  onOpenSimulatorModal
+}) => {
+  // Local state for collaborators initialized with enriched HR data
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => {
+    return ALL_COLLABORATORS.map((c, idx) => enrichCollaboratorWithHRData(c, idx));
+  });
+
   const [sectors, setSectors] = useState<OrganizationalSector[]>(INITIAL_ORGANIZATIONAL_SECTORS);
 
-  // Active view tab: 'hierarchy' (grouped by the 4 roles in exact order), 'sectors' (organizational areas), or 'rbac_matrix'
-  const [activeTab, setActiveTab] = useState<'hierarchy' | 'sectors' | 'rbac_matrix'>('hierarchy');
+  // Active view tab
+  const [activeTab, setActiveTab] = useState<'hierarchy' | 'rh_dossier' | 'sectors' | 'rbac_matrix'>('hierarchy');
+
+  // Selected collaborator for full private drawer dossier
+  const [selectedUserDetail, setSelectedUserDetail] = useState<Collaborator | null>(null);
 
   // Filters
   const [selectedRole, setSelectedRole] = useState<string>('TODOS');
@@ -52,7 +167,7 @@ export const CollaboratorsView: React.FC = () => {
   const [editingUser, setEditingUser] = useState<Collaborator | null>(null);
   const [permissionsUser, setPermissionsUser] = useState<Collaborator | null>(null);
 
-  // New user form state
+  // New user form state with HR fields
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRoleTitle, setNewUserRoleTitle] = useState('Analista de TI');
@@ -60,6 +175,8 @@ export const CollaboratorsView: React.FC = () => {
   const [newUserArea, setNewUserArea] = useState<string>('SUPORTE');
   const [newUserSector, setNewUserSector] = useState<string>('N1');
   const [newUserPhone, setNewUserPhone] = useState('(11) 98877-0000');
+  const [newUserContractType, setNewUserContractType] = useState<'CLT' | 'PJ' | 'Estágio'>('CLT');
+  const [newUserSalaryBracket, setNewUserSalaryBracket] = useState('R$ 4.800,00');
 
   // New sector form state
   const [newSectorName, setNewSectorName] = useState('');
@@ -72,6 +189,24 @@ export const CollaboratorsView: React.FC = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // CHECK ACCESS POLICY: Somente Gestão, Administração e RH
+  const activeUserRole = currentUser?.userRole || 'COLABORADOR';
+  const isAllowed =
+    activeUserRole === 'SUPER_ADMIN' ||
+    activeUserRole === 'ADMINISTRATIVO' ||
+    activeUserRole === 'GESTOR';
+
+  // If role is COLABORADOR, render the defense-in-depth security block screen
+  if (!isAllowed) {
+    return (
+      <PrivateAccessLock
+        currentUser={currentUser}
+        onSwitchUser={onSwitchUser}
+        onNavigate={onNavigate}
+      />
+    );
+  }
 
   // Helper for Role metadata
   const getRoleBadge = (role?: UserRole) => {
@@ -120,42 +255,49 @@ export const CollaboratorsView: React.FC = () => {
   });
 
   // Grouped by userRole in exact order requested by user:
-  // 1. SUPER ADMINISTRADOR
-  // 2. ADMINISTRATIVO
-  // 3. GESTOR
-  // 4. COLABORADOR
   const superAdmins = filtered.filter(c => c.userRole === 'SUPER_ADMIN');
   const administratives = filtered.filter(c => c.userRole === 'ADMINISTRATIVO');
   const gestores = filtered.filter(c => c.userRole === 'GESTOR');
   const colaboradores = filtered.filter(c => c.userRole === 'COLABORADOR' || !c.userRole);
+
+  // Export full hierarchy to Excel
+  const handleExportHierarchyExcel = () => {
+    exportHierarchyToExcel(collaborators, sectors);
+    showToast('✓ Arquitetura funcional e colaboradores exportados com sucesso em Excel (.xlsx)!');
+  };
 
   // Handler: Create User
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     const formattedEmail = newUserEmail || `${newUserName.toLowerCase().replace(/\s+/g, '.')}@bycomp.com.br`;
 
-    const newUser: Collaborator = {
-      id: `colab-${Date.now()}`,
-      name: newUserName || 'Novo Usuário',
-      role: newUserRoleTitle,
-      userRole: newUserAccessRole,
-      area: newUserArea,
-      sector: newUserSector,
-      email: formattedEmail,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      status: 'Em atividade',
-      tasksCount: 1,
-      currentTask: 'Integração ao sistema corporativo ByComp',
-      phone: newUserPhone,
-      admissionDate: '16/09/2026',
-      isBlocked: false
-    };
+    const newUser: Collaborator = enrichCollaboratorWithHRData(
+      {
+        id: `colab-${Date.now()}`,
+        name: newUserName || 'Novo Usuário',
+        role: newUserRoleTitle,
+        userRole: newUserAccessRole,
+        area: newUserArea,
+        sector: newUserSector,
+        email: formattedEmail,
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        status: 'Em atividade',
+        tasksCount: 1,
+        currentTask: 'Integração ao sistema corporativo ByComp',
+        phone: newUserPhone,
+        admissionDate: '16/09/2026',
+        isBlocked: false,
+        contractType: newUserContractType,
+        salaryBracket: newUserSalaryBracket
+      },
+      collaborators.length
+    );
 
     setCollaborators([newUser, ...collaborators]);
     setIsNewUserModalOpen(false);
     setNewUserName('');
     setNewUserEmail('');
-    showToast(`✓ Usuário ${newUser.name} cadastrado com perfil ${newUserAccessRole}.`);
+    showToast(`✓ Usuário ${newUser.name} cadastrado com perfil ${newUserAccessRole} e dados de RH salvos.`);
   };
 
   // Handler: Edit User
@@ -164,7 +306,7 @@ export const CollaboratorsView: React.FC = () => {
     if (!editingUser) return;
 
     setCollaborators(collaborators.map(c => (c.id === editingUser.id ? editingUser : c)));
-    showToast(`✓ Dados de ${editingUser.name} atualizados com sucesso.`);
+    showToast(`✓ Dados cadastrais e contratuais de ${editingUser.name} atualizados com sucesso.`);
     setEditingUser(null);
   };
 
@@ -215,58 +357,159 @@ export const CollaboratorsView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Banner Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-950/80 border border-cyan-800 text-cyan-400">
-              <Users className="w-5 h-5" />
+      {/* Top Banner Header: FASE 4 PRIVADA (Gestão, Administração & RH) */}
+      <div className="bg-slate-900/90 border border-emerald-800/60 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+        {/* Glow Accent */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-emerald-950/90 border border-emerald-700/80 text-emerald-400 shadow-md">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold text-white tracking-tight">
+                    Colaboradores: Quadro Funcional & Dossiê RH
+                  </h1>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-600 text-emerald-300">
+                    FASE 4 • TELA PRIVADA
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    LGPD COMPLIANT • ART. 46
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Acesso restrito autorizado para <strong className="text-emerald-400">Gestão</strong>,{' '}
+                  <strong className="text-sky-400">Administração</strong> e{' '}
+                  <strong className="text-purple-400">RH</strong>. Prontuários funcionais, dados contratuais e governança RBAC.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                Gestão de Usuários, Papéis & Estrutura Organizacional
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Hierarquia oficial de acessos: <strong className="text-purple-400">Super Administrador</strong> • <strong className="text-sky-400">Administrativo</strong> • <strong className="text-emerald-400">Gestor</strong> • <strong className="text-slate-300">Colaborador</strong>
-              </p>
+
+            {/* Current Operator & Confidentiality Badges */}
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-400 mt-3.5">
+              {/* Operator info */}
+              <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                <img
+                  src={currentUser?.avatar}
+                  alt={currentUser?.name}
+                  className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500"
+                />
+                <span className="text-slate-300">
+                  Operador: <strong className="text-white">{currentUser?.name}</strong>
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                  {currentUser?.userRole}
+                </span>
+              </div>
+
+              {/* Total Colabs */}
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 font-mono text-[11px]">
+                <Users className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{collaborators.length} colaboradores monitorados</span>
+              </span>
+
+              {/* Setores */}
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 font-mono text-[11px]">
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>{sectors.length} setores ativos</span>
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-3 font-mono">
-            <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
-              <Users className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Total: <strong className="text-white">{collaborators.length} usuários</strong></span>
-            </span>
-            <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+          {/* Action Buttons: Exportar Excel, Cadastrar Setor, Novo Usuário */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate('organograma')}
+                id="btn-colab-to-organograma"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+                title="Acessar Árvore Hierárquica e Organograma (Fase 3)"
+              >
+                <Network className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Fase 3: Organograma</span>
+              </button>
+            )}
+
+            <button
+              onClick={handleExportHierarchyExcel}
+              id="btn-exportar-hierarquia-excel"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+              title="Baixar lista funcional em Excel (.xlsx)"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Exportar (.xlsx)</span>
+            </button>
+
+            <button
+              onClick={() => setIsNewSectorModalOpen(true)}
+              id="btn-cadastrar-novo-setor"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
               <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Setores: <strong className="text-white">{sectors.length} cadastrados</strong></span>
-            </span>
-            <span className="flex items-center gap-1.5 bg-purple-950/60 px-2.5 py-1 rounded-lg border border-purple-800 text-purple-300">
-              <Crown className="w-3.5 h-3.5 text-purple-400" />
-              <span>Super Admin: <strong className="text-white">Victor Estevão</strong></span>
-            </span>
+              <span>+ Setor</span>
+            </button>
+
+            <button
+              onClick={() => setIsNewUserModalOpen(true)}
+              id="btn-novo-usuario"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Novo Colaborador</span>
+            </button>
           </div>
         </div>
 
-        {/* Action Buttons: Criar Usuário & Criar Setor */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => setIsNewSectorModalOpen(true)}
-            id="btn-cadastrar-novo-setor"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-slate-600 font-bold text-xs shadow-md transition-all cursor-pointer"
-          >
-            <Building2 className="w-4 h-4 text-amber-400" />
-            <span>+ Cadastrar Setor</span>
-          </button>
+        {/* Persona Quick Switcher for Stakeholder Demonstration */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs relative z-10">
+          <div className="flex items-center gap-2 text-slate-400">
+            <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-semibold text-slate-300">Testar Permissões (Demonstração):</span>
+          </div>
 
-          <button
-            onClick={() => setIsNewUserModalOpen(true)}
-            id="btn-novo-usuario"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Novo Usuário</span>
-          </button>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {AUTH_ACCOUNTS.map((acc) => {
+              const isActive = currentUser?.email === acc.email;
+              const isColabBlocked = acc.role === 'COLABORADOR';
+
+              return (
+                <button
+                  key={acc.id}
+                  onClick={() => {
+                    if (onSwitchUser) {
+                      onSwitchUser(convertCredentialToCollaborator(acc));
+                      showToast(`✓ Perfil alternado para: ${acc.name} (${acc.role})`);
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : isColabBlocked
+                      ? 'bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60'
+                      : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border border-slate-700'
+                  }`}
+                  title={
+                    isColabBlocked
+                      ? 'Testar bloqueio de tela com usuário Colaborador'
+                      : `Acessar como ${acc.name} (${acc.roleLabel})`
+                  }
+                >
+                  {isColabBlocked ? (
+                    <Lock className="w-3 h-3 text-rose-400" />
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  )}
+                  <span>{acc.name.split(' ')[0]}</span>
+                  <span className="text-[9px] opacity-75">
+                    ({acc.role === 'ADMINISTRATIVO' ? 'RH/Adm' : acc.role === 'SUPER_ADMIN' ? 'Admin' : acc.role === 'GESTOR' ? 'Gestor' : 'Colab 🚫'})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -283,28 +526,47 @@ export const CollaboratorsView: React.FC = () => {
         </div>
       )}
 
-      {/* Main Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      {/* Main Tabs Navigation (4 TABS) */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+        {/* Tab 1: Hierarquia de Usuários */}
         <button
           onClick={() => setActiveTab('hierarchy')}
           id="tab-hierarquia-usuarios"
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'hierarchy'
               ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
               : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
           <Crown className="w-3.5 h-3.5" />
-          <span>Hierarquia de Usuários (Ordem Oficial)</span>
+          <span>Hierarquia Oficial de Usuários</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 font-mono">
             {filtered.length}
           </span>
         </button>
 
+        {/* Tab 2: Dossiê RH & Dados Contratuais (NOVA FASE 4) */}
+        <button
+          onClick={() => setActiveTab('rh_dossier')}
+          id="tab-dossie-rh"
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            activeTab === 'rh_dossier'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Dossiê RH & Dados Contratuais (Privado)</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono font-bold">
+            EXCLUSIVO RH
+          </span>
+        </button>
+
+        {/* Tab 3: Estrutura Organizacional & Setores */}
         <button
           onClick={() => setActiveTab('sectors')}
           id="tab-estrutura-setores"
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'sectors'
               ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
               : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -317,10 +579,11 @@ export const CollaboratorsView: React.FC = () => {
           </span>
         </button>
 
+        {/* Tab 4: Matriz de Permissões (RBAC) */}
         <button
           onClick={() => setActiveTab('rbac_matrix')}
           id="tab-matriz-permissoes"
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'rbac_matrix'
               ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
               : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -452,13 +715,13 @@ export const CollaboratorsView: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <span>ADMINISTRATIVO</span>
+                      <span>ADMINISTRATIVO & RH</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 border border-sky-700 font-mono">
                         {administratives.length} usuário(s)
                       </span>
                     </h2>
                     <p className="text-[11px] text-slate-400">
-                      Cadastro de colaboradores, documentos, formulários, planilhas, agenda, ponto e relatórios
+                      Gestão de colaboradores, formulários, espelho de ponto, planilhas mestras e cadastros de RH
                     </p>
                   </div>
                 </div>
@@ -480,13 +743,13 @@ export const CollaboratorsView: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <span>GESTOR</span>
+                      <span>GESTOR (LÍDERES DE SETOR)</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700 font-mono">
                         {gestores.length} usuário(s)
                       </span>
                     </h2>
                     <p className="text-[11px] text-slate-400">
-                      Acompanha sua equipe, tarefas, Kanban, produtividade e SLA. <em>Sem acesso automático a outros setores.</em>
+                      Gestão do seu setor específico: Kanban da equipe, distribuição de chamados e aprovação de apontamentos
                     </p>
                   </div>
                 </div>
@@ -528,7 +791,16 @@ export const CollaboratorsView: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW TAB 2: ESTRUTURA ORGANIZACIONAL (SUPORTE, DESENVOLVIMENTO, SEGURANÇA, DADOS, ADMINISTRATIVO) */}
+      {/* VIEW TAB 2: DOSSIÊ RH & DADOS CONTRATUAIS (FASE 4 PRIVADA) */}
+      {activeTab === 'rh_dossier' && (
+        <HRDossierTab
+          collaborators={collaborators}
+          onSelectCollaborator={(c) => setSelectedUserDetail(c)}
+          showToast={showToast}
+        />
+      )}
+
+      {/* VIEW TAB 3: ESTRUTURA ORGANIZACIONAL (11 SETORES) */}
       {activeTab === 'sectors' && (
         <div className="space-y-6">
           <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -551,10 +823,6 @@ export const CollaboratorsView: React.FC = () => {
           {/* Grouped by Area */}
           {ORGANIZATIONAL_AREAS.map((areaName) => {
             const areaSectors = sectors.filter((s) => s.area === areaName);
-            const totalMembers = areaSectors.reduce((acc, s) => {
-              const membersCount = collaborators.filter((c) => c.sector === s.name || c.area === areaName).length;
-              return acc + (s.collaboratorsCount || membersCount);
-            }, 0);
 
             return (
               <div
@@ -585,51 +853,55 @@ export const CollaboratorsView: React.FC = () => {
                     return (
                       <div
                         key={sec.id}
-                        className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-cyan-500/50 transition-all shadow-sm group"
+                        className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-4 space-y-3 hover:border-cyan-500/50 transition-all flex flex-col justify-between"
                       >
                         <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">
-                              {sec.name}
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                              <span>Setor: {sec.name}</span>
+                              {sec.isCustom && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                                  Custom
+                                </span>
+                              )}
                             </h4>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                              SLA {sec.slaTarget || '99.0%'}
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
+                              SLA: {sec.slaTarget}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                            {sec.description || 'Setor técnico operacional'}
+
+                          <p className="text-xs text-slate-400 mt-2">
+                            {sec.description}
                           </p>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-800/80 text-[11px]">
-                          <div className="flex items-center justify-between text-slate-400">
-                            <span>Líder Responsável:</span>
-                            <span className="font-semibold text-slate-200">
-                              {sec.leaderName || 'A definir'}
+                        <div className="pt-3 border-t border-slate-850 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Líder / Gestor:</span>
+                            <span className="font-semibold text-slate-200">{sec.leaderName}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Headcount Ativo:</span>
+                            <span className="font-mono text-cyan-300 font-bold">
+                              {sectorCollaborators.length} pessoa(s)
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-slate-400">
-                            <span>Integrantes Ativos:</span>
-                            <span className="font-mono text-cyan-400 font-bold">
-                              {sectorCollaborators.length > 0 ? sectorCollaborators.length : sec.collaboratorsCount} membros
-                            </span>
-                          </div>
-
-                          {/* Avatars Preview */}
-                          <div className="flex items-center gap-1 pt-1">
-                            {sectorCollaborators.slice(0, 4).map((m) => (
+                          {/* Preview of members */}
+                          <div className="flex items-center -space-x-1.5 pt-1 overflow-hidden">
+                            {sectorCollaborators.slice(0, 5).map((colab) => (
                               <img
-                                key={m.id}
-                                src={m.avatar}
-                                alt={m.name}
-                                title={`${m.name} (${m.role})`}
-                                className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-700"
+                                key={colab.id}
+                                src={colab.avatar}
+                                alt={colab.name}
+                                title={`${colab.name} (${colab.role})`}
+                                className="w-6 h-6 rounded-full ring-2 ring-slate-900 object-cover"
                               />
                             ))}
-                            {sectorCollaborators.length > 4 && (
-                              <span className="w-6 h-6 rounded-full bg-slate-800 text-[10px] text-slate-300 flex items-center justify-center font-mono">
-                                +{sectorCollaborators.length - 4}
+                            {sectorCollaborators.length > 5 && (
+                              <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center ring-2 ring-slate-900 font-mono">
+                                +{sectorCollaborators.length - 5}
                               </span>
                             )}
                           </div>
@@ -644,7 +916,7 @@ export const CollaboratorsView: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW TAB 3: MATRIZ DE PERMISSÕES (RBAC) */}
+      {/* VIEW TAB 4: MATRIZ DE PERMISSÕES (RBAC) */}
       {activeTab === 'rbac_matrix' && (
         <div className="space-y-6">
           <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
@@ -722,14 +994,14 @@ export const CollaboratorsView: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: + NOVO USUÁRIO */}
+      {/* MODAL: + NOVO COLABORADOR / USUÁRIO (com campos de RH) */}
       {isNewUserModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-cyan-400" />
-                Criar Novo Usuário / Colaborador
+                <Plus className="w-4 h-4 text-emerald-400" />
+                Criar Novo Usuário / Cadastro de Pessoal
               </h3>
               <button
                 onClick={() => setIsNewUserModalOpen(false)}
@@ -770,7 +1042,7 @@ export const CollaboratorsView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Telefone / WhatsApp
+                    Telefone / Ramal
                   </label>
                   <input
                     type="text"
@@ -805,7 +1077,7 @@ export const CollaboratorsView: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
                 >
                   <option value="SUPER_ADMIN">SUPER ADMINISTRADOR (Acesso total)</option>
-                  <option value="ADMINISTRATIVO">ADMINISTRATIVO (Pessoas, Docs, Planilhas)</option>
+                  <option value="ADMINISTRATIVO">ADMINISTRATIVO (Pessoas, Docs, Planilhas & RH)</option>
                   <option value="GESTOR">GESTOR (Equipe, tarefas e SLA do setor)</option>
                   <option value="COLABORADOR">COLABORADOR (Acesso individual)</option>
                 </select>
@@ -850,6 +1122,37 @@ export const CollaboratorsView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dados de RH: Regime e Faixa Salarial */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Regime de Contratação (RH)
+                  </label>
+                  <select
+                    value={newUserContractType}
+                    onChange={(e) => setNewUserContractType(e.target.value as 'CLT' | 'PJ' | 'Estágio')}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="CLT">CLT (Consolidação das Leis do Trabalho)</option>
+                    <option value="PJ">PJ (Pessoa Jurídica)</option>
+                    <option value="Estágio">Estágio Corporativo (Lei 11.788)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Remuneração Base / Faixa Salarial
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserSalaryBracket}
+                    onChange={(e) => setNewUserSalaryBracket(e.target.value)}
+                    placeholder="Ex: R$ 5.800,00"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
@@ -860,9 +1163,9 @@ export const CollaboratorsView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer"
                 >
-                  Cadastrar Usuário
+                  Cadastrar Colaborador
                 </button>
               </div>
             </form>
@@ -983,7 +1286,7 @@ export const CollaboratorsView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-cyan-400" />
-                Editar Usuário: {editingUser.name}
+                Editar Colaborador / Usuário
               </h3>
               <button
                 onClick={() => setEditingUser(null)}
@@ -1022,49 +1325,40 @@ export const CollaboratorsView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Perfil de Acesso
+                  E-mail Corporativo
                 </label>
-                <select
-                  value={editingUser.userRole || 'COLABORADOR'}
-                  onChange={(e) => setEditingUser({ ...editingUser, userRole: e.target.value as UserRole })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
-                >
-                  <option value="SUPER_ADMIN">SUPER ADMINISTRADOR</option>
-                  <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
-                  <option value="GESTOR">GESTOR</option>
-                  <option value="COLABORADOR">COLABORADOR</option>
-                </select>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Área
+                    Setor
                   </label>
-                  <select
-                    value={editingUser.area || 'SUPORTE'}
-                    onChange={(e) => setEditingUser({ ...editingUser, area: e.target.value })}
+                  <input
+                    type="text"
+                    value={editingUser.sector}
+                    onChange={(e) => setEditingUser({ ...editingUser, sector: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
-                  >
-                    {ORGANIZATIONAL_AREAS.map(a => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Setor
+                    Telefone
                   </label>
-                  <select
-                    value={editingUser.sector}
-                    onChange={(e) => setEditingUser({ ...editingUser, sector: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
-                  >
-                    {sectors.map(s => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={editingUser.phone || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  />
                 </div>
               </div>
 
@@ -1088,20 +1382,15 @@ export const CollaboratorsView: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: DEFINIR PERMISSÕES ESPECÍFICAS */}
+      {/* MODAL: DEFINIR PERMISSÕES (RBAC) */}
       {permissionsUser && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-cyan-400" />
-                  Definir Permissões: {permissionsUser.name}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Perfil atual: <strong className="text-cyan-300">{permissionsUser.userRole || 'COLABORADOR'}</strong> • Setor: {permissionsUser.sector}
-                </p>
-              </div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-purple-400" />
+                Nível de Acesso (RBAC)
+              </h3>
               <button
                 onClick={() => setPermissionsUser(null)}
                 className="text-slate-400 hover:text-white text-xs"
@@ -1110,85 +1399,84 @@ export const CollaboratorsView: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-xs text-slate-300">
-                Abaixo estão as permissões herdadas do perfil e customizações individuais:
-              </p>
-
-              <div className="space-y-2">
-                {[
-                  'Visualizar todos os setores',
-                  'Criar e editar usuários',
-                  'Bloquear usuários',
-                  'Criar novos setores organizacionais',
-                  'Visualizar todos os Kanbans da empresa',
-                  'Visualizar registros de ponto de outras equipes',
-                  'Acessar relatórios executivos',
-                  'Acessar logs de auditoria do sistema',
-                  'Configurar integrações (WhatsApp, IA, Redes)',
-                  'Acessar configurações gerais'
-                ].map((perm, idx) => {
-                  const isRoleSuper = permissionsUser.userRole === 'SUPER_ADMIN';
-                  const isRoleAdmin = permissionsUser.userRole === 'ADMINISTRATIVO';
-                  const isAllowedByDefault =
-                    isRoleSuper ||
-                    (isRoleAdmin && idx < 6) ||
-                    (!isRoleSuper && !isRoleAdmin && idx >= 4 && idx <= 5);
-
-                  return (
-                    <label
-                      key={idx}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer"
-                    >
-                      <span className="text-xs text-slate-300">{perm}</span>
-                      <input
-                        type="checkbox"
-                        defaultChecked={isAllowedByDefault}
-                        disabled={isRoleSuper}
-                        className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 bg-slate-900 border-slate-700 cursor-pointer"
-                      />
-                    </label>
-                  );
-                })}
+            <div className="flex items-center gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <img
+                src={permissionsUser.avatar}
+                alt={permissionsUser.name}
+                className="w-10 h-10 rounded-lg object-cover ring-1 ring-slate-700"
+              />
+              <div>
+                <p className="font-bold text-xs text-white">{permissionsUser.name}</p>
+                <p className="text-[11px] text-slate-400">{permissionsUser.role}</p>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setPermissionsUser(null)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
-              >
-                Fechar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  showToast(`✓ Permissões de ${permissionsUser.name} atualizadas.`);
-                  setPermissionsUser(null);
-                }}
-                className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md cursor-pointer"
-              >
-                Salvar Permissões
-              </button>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">
+                Selecione o Papel Oficial:
+              </label>
+
+              {(['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'] as UserRole[]).map((role) => {
+                const meta = getRoleBadge(role);
+                const isSelected = permissionsUser.userRole === role;
+
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...permissionsUser, userRole: role };
+                      setCollaborators(collaborators.map(c => (c.id === updated.id ? updated : c)));
+                      setPermissionsUser(null);
+                      showToast(`✓ Perfil de ${updated.name} alterado para ${role}.`);
+                    }}
+                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-cyan-950/60 border-cyan-500 text-white'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-xs font-bold">{meta.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {role === 'SUPER_ADMIN'
+                          ? 'Acesso irrestrito a todas as 24 telas e configurações'
+                          : role === 'ADMINISTRATIVO'
+                          ? 'Gestão de pessoas, chamados gerais, planilhas e relatórios'
+                          : role === 'GESTOR'
+                          ? 'Visão do Kanban de equipe, apontamentos e SLAs do setor'
+                          : 'Acesso restrito ao próprio Kanban, tarefas e ponto'}
+                      </p>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-cyan-400 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
+
+      {/* DRAWER: PRONTUÁRIO COMPLETO DO COLABORADOR (DOSSIÊ PRIVADO) */}
+      <CollaboratorDetailDrawer
+        collaborator={selectedUserDetail}
+        onClose={() => setSelectedUserDetail(null)}
+        onToggleBlock={handleToggleBlock}
+        showToast={showToast}
+      />
     </div>
   );
 
-  // Helper render of user card with full actions (Editar, Bloquear, Permissões)
+  // Sub-render: Individual user card for the hierarchy view
   function renderUserCard(c: Collaborator) {
     const meta = getRoleBadge(c.userRole);
-    const RoleIcon = meta.icon;
-    const isVictor = c.name.toLowerCase().includes('victor estevão');
+    const isVictor = c.id === 'colab-1';
 
     return (
       <div
         key={c.id}
-        id={`colab-card-${c.id}`}
-        className={`p-4 rounded-2xl bg-slate-900/90 border transition-all shadow-md flex flex-col justify-between space-y-3 group ${
+        onClick={() => setSelectedUserDetail(c)}
+        className={`bg-slate-900/90 border rounded-2xl p-4 space-y-3 transition-all hover:scale-[1.01] hover:shadow-xl group flex flex-col justify-between cursor-pointer ${
           c.isBlocked
             ? 'border-rose-900/70 bg-rose-950/10'
             : isVictor
@@ -1272,7 +1560,7 @@ export const CollaboratorsView: React.FC = () => {
           </span>
 
           {/* Action Icons: Edit, Block/Unblock, Permissions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setEditingUser(c)}
               title="Editar usuário"

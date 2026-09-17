@@ -76,9 +76,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'visao_geral', label: 'Central de Gestão', icon: Compass, badge: 'Executivo' },
-        { id: 'design_system', label: 'UX/UI & Design System', icon: Layers, badge: 'Fase 2', highlight: true },
-        { id: 'organograma', label: 'Organograma', icon: Network },
-        { id: 'colaboradores', label: 'Colaboradores', icon: Users, badge: 48 }
+        { id: 'design_system', label: 'UX/UI & Design System', icon: Layers, badge: 'Fase 2 • Privada', highlight: true },
+        { id: 'organograma', label: 'Organograma', icon: Network, badge: 'Fase 3 • Privada', highlight: true },
+        { id: 'colaboradores', label: 'Colaboradores', icon: Users, badge: 'Fase 4 • Privada', highlight: true }
       ]
     },
     {

@@ -14,7 +14,8 @@ import {
   Users,
   ChevronDown,
   Key,
-  Sparkles
+  Sparkles,
+  Network
 } from 'lucide-react';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
@@ -34,7 +35,7 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   dashboard: { title: 'Dashboard Executivo', subtitle: 'Panorama em tempo real', category: 'Visão Geral' },
   visao_geral: { title: 'Central de Gestão', subtitle: 'Tudo conectado. Todos os processos monitorados.', category: 'Visão Geral' },
   organograma: { title: 'Organograma Corporativo', subtitle: 'Conexão estrutural de todos os setores', category: 'Visão Geral' },
-  colaboradores: { title: 'Quadro de Colaboradores', subtitle: '48 profissionais monitorados', category: 'Visão Geral' },
+  colaboradores: { title: 'Colaboradores (Fase 4 • Privada)', subtitle: 'Acesso Restrito: Gestão, Administração e RH', category: 'Gestão & RH' },
   meu_kanban: { title: 'Meu Kanban', subtitle: 'Fluxo individual de trabalho', category: 'Operação' },
   kanban_equipe: { title: 'Kanban da Equipe', subtitle: 'Suporte N2 • Semana 14/09 a 20/09/2026', category: 'Operação' },
   visao_semanal: { title: 'Planejamento Semanal', subtitle: 'Distribuição de atividades por dia', category: 'Operação' },
@@ -141,6 +142,28 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           <span>Fase 2 UX/UI</span>
+        </button>
+
+        {/* Phase 3 Organograma Shortcut */}
+        <button
+          onClick={() => onSelectScreen('organograma')}
+          id="btn-navbar-organograma"
+          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 hover:border-cyan-500 text-cyan-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
+          title="Acessar Organograma Institucional & Linhas de Comando da Fase 3"
+        >
+          <Network className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Fase 3 Organograma</span>
+        </button>
+
+        {/* Phase 4 Colaboradores (Área Privada) Shortcut */}
+        <button
+          onClick={() => onSelectScreen('colaboradores')}
+          id="btn-navbar-colaboradores"
+          className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-700/70 hover:border-emerald-500 text-emerald-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
+          title="Acessar Colaboradores (Fase 4 • Área Privada: Gestão, Adm e RH)"
+        >
+          <Shield className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Fase 4: Privada (RH/Adm)</span>
         </button>
 
         {/* Live Date & Time Widget */}

@@ -1,6 +1,6 @@
 {
   "name": "ByComp - Gestão Integrada",
-  "description": "Protótipo visual, navegável e interativo de plataforma de gestão empresarial para empresa de TI.",
+  "description": "Plataforma corporativa de gestão para empresa de TI com Organograma Hierárquico (Fase 3) e Área Privada de Colaboradores e RH (Fase 4).",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

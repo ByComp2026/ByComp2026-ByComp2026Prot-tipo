@@ -22,7 +22,9 @@ import {
   HardDrive,
   Compass,
   LogIn,
-  FileText
+  FileText,
+  Network,
+  Shield
 } from 'lucide-react';
 import { ViewScreen } from '../types';
 
@@ -72,10 +74,11 @@ export const PresentationNavigatorModal: React.FC<QuickJumpModalProps> = ({
     { id: 'clientes', number: 17, name: 'Tela 17 • Gestão de Clientes & Contratos', category: 'Comercial', description: 'Carteira de clientes atendidos, planos contratados, SLAs e faturamento', icon: Building2 },
     { id: 'chamados', number: 18, name: 'Tela 18 • Help Desk & Chamados', category: 'Operação', description: 'Fila técnica de incidentes N1/N2/N3, priorização e controle de SLA', icon: LifeBuoy },
     { id: 'equipamentos', number: 19, name: 'Tela 19 • Inventário de Equipamentos', category: 'Infraestrutura', description: 'Gestão patrimonial de notebooks, servidores e termos de cautela', icon: HardDrive },
-    { id: 'colaboradores', number: 20, name: 'Tela 20 • Equipe (48 Colaboradores)', category: 'Pessoas', description: 'Diretório completo de colaboradores distribuídos pelos 8 setores de TI', icon: Users },
+    { id: 'colaboradores', number: 20, name: 'Fase 4 • Colaboradores (Área Privada: Gestão, Adm & RH)', category: 'Gestão & RH', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Quadro funcional, dossiê contratual, salários e governança de acessos', icon: Shield },
     { id: 'auditoria', number: 21, name: 'Tela 21 • Trilha de Auditoria & Segurança', category: 'Governança', description: 'Syslog corporativo imutável para compliance, acessos e LGPD', icon: ShieldCheck },
     { id: 'visao_geral', number: 22, name: 'Tela 22 • Visão Geral da Plataforma', category: 'Executivo', description: 'Diagrama visual do ecossistema integrado: tudo conectado em uma única plataforma', icon: Compass },
-    { id: 'design_system', number: 23, name: 'Fase 2 • UX/UI Design System & Wireframes', category: 'Design UX/UI', description: 'Mapa de navegação interativo, wireframes responsivos e design system corporativo', icon: Sparkles }
+    { id: 'design_system', number: 23, name: 'Fase 2 • UX/UI Design System (Área Privada: Gestão, Adm & RH)', category: 'Design UX/UI • Privada', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Mapa de navegação interativo das 22 telas, wireframes responsivos e especificações de produto', icon: Sparkles },
+    { id: 'organograma', number: 24, name: 'Fase 3 • Organograma Institucional (Área Privada: Gestão, Adm & RH)', category: 'Estrutura • Privada', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Árvore hierárquica interativa, 48 colaboradores, linhas de comando e simulação de cargos', icon: Network }
   ];
 
   const filteredScreens = screens.filter(s => 

@@ -29,6 +29,7 @@ import { CollaboratorsView } from './components/views/CollaboratorsView';
 import { AuditLogView } from './components/views/AuditLogView';
 import { VisionOverviewView } from './components/views/VisionOverviewView';
 import { DesignSystemNavMapView } from './components/views/DesignSystemNavMapView';
+import { OrganogramaView } from './components/views/OrganogramaView';
 import { RoleSimulatorModal } from './components/RoleSimulatorModal';
 import { checkScreenAccess } from './data/authCredentials';
 import { Presentation, BookOpen, ChevronRight, ChevronLeft, ShieldAlert, Lock, Crown, Key, Sparkles, Shield } from 'lucide-react';
@@ -168,87 +169,96 @@ export default function App() {
       );
     }
 
-    // Centralized RBAC Security Enforcement across all 22 screens
-    const access = checkScreenAccess(currentScreen, currentUser.userRole);
-    if (!access.allowed) {
-      const isSuperAdminRequired = access.policy.allowedRoles.length === 1 && access.policy.allowedRoles[0] === 'SUPER_ADMIN';
+    // Dedicated executive private screens (Phase 2, Phase 3, Phase 4) render their own
+    // specialized PrivateAccessLock with 1-click test personas (Helena, Victor, Carlos) and full governance context.
+    const isDedicatedPrivateScreen =
+      currentScreen === 'colaboradores' ||
+      currentScreen === 'organograma' ||
+      currentScreen === 'design_system';
 
-      return (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-12 max-w-2xl mx-auto my-8 text-center shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border ${
-            isSuperAdminRequired 
-              ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' 
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-          }`}>
-            <Lock className="w-8 h-8" />
-          </div>
+    if (!isDedicatedPrivateScreen) {
+      // Centralized RBAC Security Enforcement across standard operational screens
+      const access = checkScreenAccess(currentScreen, currentUser.userRole);
+      if (!access.allowed) {
+        const isSuperAdminRequired = access.policy.allowedRoles.length === 1 && access.policy.allowedRoles[0] === 'SUPER_ADMIN';
 
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold mb-3 ${
-            isSuperAdminRequired
-              ? 'bg-purple-950/60 border-purple-800 text-purple-300'
-              : 'bg-amber-950/60 border-amber-800/80 text-amber-300'
-          }`}>
-            <ShieldAlert className="w-3.5 h-3.5" />
-            Controle de Acesso (RBAC) Ativo • {access.policy.category}
-          </div>
-
-          <h3 className="text-2xl font-bold text-white mb-2">
-            Acesso Restrito: {access.policy.screenTitle}
-          </h3>
-
-          <p className="text-sm text-slate-400 mb-6 leading-relaxed max-w-lg mx-auto">
-            {access.policy.restrictionReason}
-          </p>
-
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-xs text-slate-300 mb-6 space-y-3">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-slate-400">Usuário Ativo Simulado:</span>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white">{currentUser.name}</span>
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono text-[10px]">
-                  {currentUser.userRole || 'COLABORADOR'}
-                </span>
-              </div>
+        return (
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-12 max-w-2xl mx-auto my-8 text-center shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border ${
+              isSuperAdminRequired 
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' 
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+            }`}>
+              <Lock className="w-8 h-8" />
             </div>
 
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">Papéis com permissão:</span>
-              <div className="flex flex-wrap gap-1 justify-end">
-                {access.policy.allowedRoles.map((role) => (
-                  <span key={role} className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono text-[10px]">
-                    {role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : role}
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold mb-3 ${
+              isSuperAdminRequired
+                ? 'bg-purple-950/60 border-purple-800 text-purple-300'
+                : 'bg-amber-950/60 border-amber-800/80 text-amber-300'
+            }`}>
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Controle de Acesso (RBAC) Ativo • {access.policy.category}
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-2">
+              Acesso Restrito: {access.policy.screenTitle}
+            </h3>
+
+            <p className="text-sm text-slate-400 mb-6 leading-relaxed max-w-lg mx-auto">
+              {access.policy.restrictionReason}
+            </p>
+
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-xs text-slate-300 mb-6 space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <span className="text-slate-400">Usuário Ativo Simulado:</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-white">{currentUser.name}</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono text-[10px]">
+                    {currentUser.userRole || 'COLABORADOR'}
                   </span>
-                ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">Papéis com permissão:</span>
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {access.policy.allowedRoles.map((role) => (
+                    <span key={role} className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono text-[10px]">
+                      {role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : role}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => handleSwitchRole(access.policy.recommendedRoleToTest)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-cyan-900/30 hover:scale-102"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-200" />
+                Simular como {access.policy.recommendedRoleToTest === 'SUPER_ADMIN' ? 'Super Admin' : access.policy.recommendedRoleToTest}
+              </button>
+
+              <button
+                onClick={() => setIsSimulatorModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Key className="w-3.5 h-3.5 text-cyan-400" />
+                Ver Credenciais & Senhas
+              </button>
+
+              <button
+                onClick={() => setCurrentScreen('dashboard')}
+                className="px-4 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Voltar ao Dashboard
+              </button>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => handleSwitchRole(access.policy.recommendedRoleToTest)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-cyan-900/30 hover:scale-102"
-            >
-              <Sparkles className="w-4 h-4 text-cyan-200" />
-              Simular como {access.policy.recommendedRoleToTest === 'SUPER_ADMIN' ? 'Super Admin' : access.policy.recommendedRoleToTest}
-            </button>
-
-            <button
-              onClick={() => setIsSimulatorModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Key className="w-3.5 h-3.5 text-cyan-400" />
-              Ver Credenciais & Senhas
-            </button>
-
-            <button
-              onClick={() => setCurrentScreen('dashboard')}
-              className="px-4 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-            >
-              Voltar ao Dashboard
-            </button>
-          </div>
-        </div>
-      );
+        );
+      }
     }
 
     switch (currentScreen) {
@@ -300,7 +310,14 @@ export default function App() {
       case 'equipamentos':
         return <EquipmentView />;
       case 'colaboradores':
-        return <CollaboratorsView />;
+        return (
+          <CollaboratorsView
+            onNavigate={setCurrentScreen}
+            currentUser={currentUser}
+            onSwitchUser={setCurrentUser}
+            onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+          />
+        );
       case 'auditoria':
         return <AuditLogView />;
       case 'visao_geral':
@@ -310,8 +327,22 @@ export default function App() {
             onOpenGuide={() => setIsGuideModalOpen(true)}
           />
         );
+      case 'organograma':
+        return (
+          <OrganogramaView
+            onNavigate={setCurrentScreen}
+            currentUser={currentUser}
+            onSwitchUser={setCurrentUser}
+          />
+        );
       case 'design_system':
-        return <DesignSystemNavMapView onNavigate={setCurrentScreen} />;
+        return (
+          <DesignSystemNavMapView
+            onNavigate={setCurrentScreen}
+            currentUser={currentUser}
+            onSwitchUser={setCurrentUser}
+          />
+        );
       default:
         return <DashboardView onNavigate={setCurrentScreen} />;
     }

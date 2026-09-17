@@ -1541,60 +1541,125 @@ export const CLIENTS_DATA = [
   }
 ];
 
-export const TICKETS_DATA = [
+export const TICKETS_DATA: SupportTicket[] = [
   {
     id: '#1082',
     client: 'TechCorp Brasil',
     subject: 'Falha de rota no gateway da filial SP',
-    sector: 'Suporte N2' as Sector,
-    priority: 'Crítica' as const,
-    status: 'Em atendimento' as const,
+    sector: 'N2',
+    assignedTo: 'Victor Estevão',
+    priority: 'Crítica',
+    status: 'Em atendimento',
     openTime: '42 min'
   },
   {
     id: '#1083',
     client: 'Banco Ágata',
     subject: 'Auditoria de chaves SSH no cluster de produção',
-    sector: 'Cyber Security' as Sector,
-    priority: 'Alta' as const,
-    status: 'Em atendimento' as const,
+    sector: 'Cyber Security',
+    assignedTo: 'Lucas Martins',
+    priority: 'Alta',
+    status: 'Em atendimento',
     openTime: '1h 15m'
   },
   {
     id: '#1084',
     client: 'Farmácias Viva',
     subject: 'Impressora fiscal PDV não responde no terminal 03',
-    sector: 'Suporte N1' as Sector,
-    priority: 'Média' as const,
-    status: 'Aberto' as const,
+    sector: 'N1',
+    priority: 'Média',
+    status: 'Aberto',
     openTime: '18 min'
   },
   {
     id: '#1085',
     client: 'LogiTrans',
     subject: 'Lentidão em query de rastreamento de cargas',
-    sector: 'DBA' as Sector,
-    priority: 'Alta' as const,
-    status: 'Em atendimento' as const,
+    sector: 'DBA',
+    assignedTo: 'Camila Rocha',
+    priority: 'Alta',
+    status: 'Em atendimento',
     openTime: '2h 05m'
   },
   {
     id: '#1086',
     client: 'Varejo Max',
     subject: 'Checkout acusando erro 502 no gateway Pix',
-    sector: 'Back-End' as Sector,
-    priority: 'Crítica' as const,
-    status: 'Resolvido' as const,
-    openTime: '35 min'
+    sector: 'Back-End',
+    assignedTo: 'Rodrigo Fontes',
+    priority: 'Crítica',
+    status: 'Resolvido',
+    openTime: '35 min',
+    serviceType: 'Depuração de API & Microsserviços',
+    resolutionSummary: 'Reinício de pods do gateway de conciliação e expurgo de fila dead-letter no RabbitMQ.',
+    resolvedBy: 'Rodrigo Fontes',
+    resolvedSector: 'Back-End',
+    resolvedAt: '16/09/2026 10:15',
+    resolutionTimeSpent: '00h 35m'
   },
   {
     id: '#1087',
     client: 'TechCorp Brasil',
     subject: 'Criação de 8 novas contas de e-mail corporativo',
-    sector: 'Suporte N1' as Sector,
-    priority: 'Baixa' as const,
-    status: 'Aguardando' as const,
+    sector: 'N1',
+    priority: 'Baixa',
+    status: 'Aguardando',
     openTime: '3h 40m'
+  },
+  {
+    id: '#1088',
+    client: 'LogiTrans',
+    subject: 'Instabilidade no link de fibra dedicado e comutação BGP',
+    sector: 'N3',
+    priority: 'Crítica',
+    status: 'Aberto',
+    openTime: '12 min'
+  },
+  {
+    id: '#1089',
+    client: 'Farmácias Viva',
+    subject: 'Reset de senhas em lote de 14 caixas de filial',
+    sector: 'N1',
+    priority: 'Média',
+    status: 'Aberto',
+    openTime: '25 min'
+  },
+  {
+    id: '#1090',
+    client: 'Banco Ágata',
+    subject: 'Desconexão intermitente de túnel VPN IPsec de contingência',
+    sector: 'N2',
+    priority: 'Alta',
+    status: 'Aberto',
+    openTime: '50 min'
+  },
+  {
+    id: '#1091',
+    client: 'Varejo Max',
+    subject: 'Correção de quebra de layout mobile no carrinho de compras',
+    sector: 'Front-End',
+    assignedTo: 'Beatriz Lima',
+    priority: 'Média',
+    status: 'Em atendimento',
+    openTime: '1h 30m'
+  },
+  {
+    id: '#1092',
+    client: 'LogiTrans',
+    subject: 'Deadlock em transação de emissão de CTe no banco de dados',
+    sector: 'DBA',
+    priority: 'Alta',
+    status: 'Aberto',
+    openTime: '45 min'
+  },
+  {
+    id: '#1093',
+    client: 'TechCorp Brasil',
+    subject: 'Substituição de notebook com falha de display e termo PAT',
+    sector: 'Administrativo',
+    priority: 'Média',
+    status: 'Aberto',
+    openTime: '2h 10m'
   }
 ];
 

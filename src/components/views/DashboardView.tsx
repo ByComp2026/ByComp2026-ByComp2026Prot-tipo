@@ -26,7 +26,8 @@ import {
   FileSpreadsheet,
   Briefcase,
   SlidersHorizontal,
-  Flame
+  Flame,
+  Network
 } from 'lucide-react';
 import { ViewScreen } from '../../types';
 import {
@@ -257,6 +258,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           >
             <Layers className="w-3.5 h-3.5 text-purple-300" />
             <span>Fase 2: UX/UI Design</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('organograma')}
+            id="btn-dashboard-organograma"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 text-xs font-bold transition-all cursor-pointer"
+            title="Acessar Organograma Institucional, Estrutura e Linhas de Comando (Fase 3)"
+          >
+            <Network className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Fase 3: Organograma</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('colaboradores')}
+            id="btn-dashboard-colaboradores-fase4"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-200 text-xs font-bold transition-all cursor-pointer shadow-md"
+            title="Acessar Área Privada de Colaboradores e Dossiê RH (Fase 4 • Gestão, Adm e RH)"
+          >
+            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Fase 4: Colaboradores (Privada)</span>
           </button>
         </div>
       </div>

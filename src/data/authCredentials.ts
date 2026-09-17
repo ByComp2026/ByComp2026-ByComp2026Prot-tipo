@@ -247,18 +247,18 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
   },
   organograma: {
     screen: 'organograma',
-    screenTitle: 'Organograma Institucional',
-    category: 'VISÃO GERAL',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
-    restrictionReason: 'Disponível para consulta institucional por todos os colaboradores da empresa.',
-    recommendedRoleToTest: 'SUPER_ADMIN'
+    screenTitle: 'Fase 3 • Organograma Institucional (Área Privada: Gestão, Adm & RH)',
+    category: 'FASE 3 • PRIVADA',
+    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
+    restrictionReason: 'Área Privada Corporativa (Fase 3): Acesso confidencial e restrito exclusivamente à Gestão, Administração e Recursos Humanos (RH) da ByComp. A visualização de linhas de comando de subordinação, metas de SLA e reestruturação de setores é vedada a colaboradores operacionais.',
+    recommendedRoleToTest: 'GESTOR'
   },
   colaboradores: {
     screen: 'colaboradores',
-    screenTitle: 'Quadro Geral de Colaboradores',
-    category: 'VISÃO GERAL',
+    screenTitle: 'Fase 4 • Colaboradores (Área Privada: Gestão, Adm & RH)',
+    category: 'FASE 4 • PRIVADA',
     allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
-    restrictionReason: 'O gerenciamento do quadro de 48 colaboradores e setores é exclusivo do setor Administrativo e da Diretoria.',
+    restrictionReason: 'Área Privada Corporativa (Fase 4): Acesso confidencial e restrito exclusivamente à Gestão, Administração e Recursos Humanos (RH) da ByComp em conformidade com as diretrizes internas e a LGPD. Colaboradores operacionais não possuem permissão para visualizar o dossiê cadastral, contratos e quadro de pessoal.',
     recommendedRoleToTest: 'ADMINISTRATIVO'
   },
   chamados: {
@@ -447,10 +447,10 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
   },
   design_system: {
     screen: 'design_system',
-    screenTitle: 'Design System & Mapa UX/UI (Fase 2)',
-    category: 'ARQUITETURA',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
-    restrictionReason: 'Documentação visual, wireframes e mapa de navegação interativo aberto a todas as personas.',
+    screenTitle: 'Fase 2 • UX/UI Design System & Wireframes (Área Privada: Gestão, Adm & RH)',
+    category: 'FASE 2 • PRIVADA',
+    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
+    restrictionReason: 'Área Privada Corporativa (Fase 2): Acesso confidencial e restrito exclusivamente à Gestão, Administração e Recursos Humanos (RH) da ByComp. O mapa de navegação interativo das 22 telas, wireframes de alta fidelidade e especificações de produto são confidenciais.',
     recommendedRoleToTest: 'SUPER_ADMIN'
   }
 };
@@ -490,3 +490,5 @@ export function convertCredentialToCollaborator(account: UserCredentialAccount):
     currentTask: account.currentTask
   };
 }
+
+export const AUTH_ACCOUNTS = USER_CREDENTIALS;
