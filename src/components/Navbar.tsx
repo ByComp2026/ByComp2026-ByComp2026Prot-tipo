@@ -2,20 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell,
   Clock,
-  Search,
-  Zap,
   CheckCircle2,
   AlertTriangle,
-  HelpCircle,
-  Laptop,
   Crown,
   Shield,
   UserCog,
   Users,
   ChevronDown,
   Key,
-  Sparkles,
-  Network
+  Menu
 } from 'lucide-react';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
@@ -28,6 +23,7 @@ interface NavbarProps {
   currentUser?: Collaborator;
   onSwitchUserRole?: (role: UserRole) => void;
   onOpenSimulatorModal?: () => void;
+  onToggleMobileMenu?: () => void;
 }
 
 const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; category: string }> = {
@@ -69,7 +65,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGuide,
   currentUser = CURRENT_USER,
   onSwitchUserRole,
-  onOpenSimulatorModal
+  onOpenSimulatorModal,
+  onToggleMobileMenu
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleSelector, setShowRoleSelector] = useState(false);
@@ -93,121 +90,79 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="h-16 bg-slate-900/90 border-b border-slate-800 px-5 flex items-center justify-between z-20 backdrop-blur-md shrink-0">
+    <header className="h-16 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-5 flex items-center justify-between z-20 backdrop-blur-md shrink-0">
       {/* Breadcrumb and Screen Title */}
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="hidden sm:flex flex-col">
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-            <span>ByComp</span>
-            <span>/</span>
-            <span className="text-cyan-400">{currentMeta.category}</span>
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={onToggleMobileMenu}
+          id="btn-navbar-mobile-menu"
+          className="lg:hidden min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white border border-slate-700/80 transition-all cursor-pointer shrink-0 z-30"
+          title="Abrir menu de navegação lateral"
+          aria-label="Abrir menu de navegação lateral"
+        >
+          <Menu className="w-5 h-5 text-cyan-400" />
+        </button>
+
+        {/* Small Screen Logo */}
+        <div 
+          onClick={() => onSelectScreen('dashboard')}
+          className="lg:hidden flex items-center cursor-pointer shrink-0"
+          title="Ir para Dashboard"
+        >
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white font-extrabold text-xs shadow-md">
+            B
+          </div>
+        </div>
+
+        {/* Screen Title - Responsive for all screens */}
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 font-medium">
+            <span className="hidden sm:inline">ByComp</span>
+            <span className="hidden sm:inline">/</span>
+            <span className="text-cyan-400 truncate">{currentMeta.category}</span>
           </div>
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-white tracking-tight truncate">
+            <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-none">
               {currentMeta.title}
             </h2>
-            <span className="hidden lg:inline text-xs text-slate-400 font-normal border-l border-slate-700 pl-2">
+            <span className="hidden lg:inline text-xs text-slate-400 font-normal border-l border-slate-700 pl-2 truncate">
               {currentMeta.subtitle}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Center Slogan Highlight */}
-      <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
-        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-        <span className="font-semibold text-cyan-300">“Tudo conectado. Todos os processos monitorados.”</span>
-      </div>
-
       {/* Right Action Widgets */}
-      <div className="flex items-center gap-3 shrink-0">
-        {/* Quick Screen Switcher Button for Presenter */}
-        <button
-          onClick={onOpenQuickJump}
-          id="btn-navbar-screen-switcher"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 hover:border-cyan-500/80 text-cyan-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
-          title="Abrir índice completo de 22 telas"
-        >
-          <Zap className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="hidden sm:inline">22 Telas</span>
-          <span className="text-[10px] bg-cyan-900/80 px-1 py-0.2 rounded font-mono">Alt+K</span>
-        </button>
-
-        {/* Phase 2 UX/UI Design System Shortcut */}
-        <button
-          onClick={() => onSelectScreen('design_system')}
-          id="btn-navbar-design-system"
-          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-950/60 border border-purple-800/60 hover:border-purple-500 text-purple-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
-          title="Acessar Wireframes, Mapa de Navegação e Design System da Fase 2"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-          <span>Fase 2 UX/UI</span>
-        </button>
-
-        {/* Phase 3 Organograma Shortcut */}
-        <button
-          onClick={() => onSelectScreen('organograma')}
-          id="btn-navbar-organograma"
-          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 hover:border-cyan-500 text-cyan-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
-          title="Acessar Organograma Institucional & Linhas de Comando da Fase 3"
-        >
-          <Network className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Fase 3 Organograma</span>
-        </button>
-
-        {/* Phase 4 Colaboradores (Área Privada) Shortcut */}
-        <button
-          onClick={() => onSelectScreen('colaboradores')}
-          id="btn-navbar-colaboradores"
-          className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-700/70 hover:border-emerald-500 text-emerald-300 hover:text-white text-xs font-semibold shadow-sm transition-all"
-          title="Acessar Colaboradores (Fase 4 • Área Privada: Gestão, Adm e RH)"
-        >
-          <Shield className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Fase 4: Privada (RH/Adm)</span>
-        </button>
-
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Live Date & Time Widget */}
-        <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-xs font-mono text-slate-300">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span>16/09/2026</span>
-          <span className="text-cyan-400 font-bold">{time}</span>
+        <div 
+          id="navbar-datetime-widget"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs font-mono text-slate-300 shadow-sm"
+          title="Data e hora sincronizada do sistema"
+        >
+          <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <span className="hidden sm:inline text-slate-300 font-medium">16/09/2026</span>
+          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-cyan-300 font-bold tracking-wide">{time}</span>
         </div>
 
         {/* Attendance Status Badge (Clickable to jump to Time Clock) */}
         <button
           onClick={() => onSelectScreen('registro_ponto')}
           id="btn-navbar-timeclock-pill"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-700/50 hover:border-emerald-500 text-emerald-300 text-xs font-medium transition-all"
-          title="Ponto registrado às 08:02. Clique para abrir Registro de Ponto"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-700/60 hover:border-emerald-400 text-emerald-300 text-xs font-medium transition-all shadow-sm active:scale-95 cursor-pointer"
+          title="Ponto registrado hoje às 08:02. Clique para abrir Registro de Ponto"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="hidden sm:inline">Ponto:</span>
-          <span className="font-semibold">08:02</span>
-          <span className="text-[10px] bg-emerald-900/60 px-1 rounded">Expediente</span>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="font-semibold">Ponto: 08:02</span>
+          <span className="hidden md:inline text-[10px] bg-emerald-900/80 text-emerald-200 px-1.5 py-0.2 rounded font-semibold border border-emerald-700/60">
+            Expediente
+          </span>
         </button>
-
-        {/* Presentation Guide Modal Button */}
-        <button
-          onClick={onOpenGuide}
-          id="btn-navbar-guide"
-          className="p-2 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors"
-          title="Roteiro de Apresentação Executiva"
-        >
-          <HelpCircle className="w-4 h-4 text-cyan-400" />
-        </button>
-
-        {/* Quick Simulator & Passwords Modal Button */}
-        {onOpenSimulatorModal && (
-          <button
-            onClick={onOpenSimulatorModal}
-            id="btn-navbar-open-simulator-modal"
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 hover:border-cyan-500 text-cyan-300 text-xs font-semibold transition-all cursor-pointer shadow-sm"
-            title="Ver todos os Usuários, Senhas e Matriz de Permissões de Telas"
-          >
-            <Key className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Senhas & RBAC</span>
-          </button>
-        )}
 
         {/* Role Simulator Pill & Switcher */}
         <div className="relative">

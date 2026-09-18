@@ -1,6 +1,6 @@
 {
   "name": "ByComp - Gestão Integrada",
-  "description": "Plataforma corporativa de gestão para empresa de TI com Organograma Hierárquico (Fase 3) e Área Privada de Colaboradores e RH (Fase 4).",
-  "requestFramePermissions": ["camera"],
+  "description": "Plataforma corporativa de gestão para empresa de TI com Organograma (Fase 3), Colaboradores (Fase 4), Help Desk & Chamados (Fase 5), Base de Conhecimento (Fase 6) e Registro de Ponto Exclusivo por Reconhecimento Facial Universal com Geolocalização (Fase 7).",
+  "requestFramePermissions": ["camera", "geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

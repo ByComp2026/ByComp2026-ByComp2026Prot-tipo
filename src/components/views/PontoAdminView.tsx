@@ -12,10 +12,15 @@ import {
   Eye,
   SlidersHorizontal,
   FileSpreadsheet,
-  Check
+  Check,
+  MapPin,
+  Scan,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { PONTO_ADMIN_ROWS, SECTORS } from '../../data/mockData';
 import { ViewScreen } from '../../types';
+import { pontoService } from '../../services/pontoService';
 
 interface PontoAdminViewProps {
   onNavigate: (screen: ViewScreen) => void;
@@ -175,12 +180,19 @@ export const PontoAdminView: React.FC<PontoAdminViewProps> = ({ onNavigate }) =>
                 <th className="py-3 px-4">Entrada</th>
                 <th className="py-3 px-4">Intervalo</th>
                 <th className="py-3 px-4">Saída</th>
+                <th className="py-3 px-4">Biometria, IP & Localização</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono">
-              {filtered.map((row) => (
+              {filtered.map((row) => {
+                const livePunches = pontoService.getTodayRecords(row.name);
+                const lastPunch = livePunches[0];
+                const ip = lastPunch?.ipAddress || lastPunch?.location?.ipAddress || '189.40.12.98';
+                const loc = lastPunch?.location?.approximateAddress || 'São Paulo, SP (Aprox. 15m)';
+
+                return (
                 <tr key={row.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="py-3 px-4 font-bold text-white font-sans">
                     {row.name}
@@ -193,6 +205,24 @@ export const PontoAdminView: React.FC<PontoAdminViewProps> = ({ onNavigate }) =>
                   <td className="py-3 px-4 text-cyan-300 font-semibold">{row.entry}</td>
                   <td className="py-3 px-4 text-slate-400">{row.breakTime}</td>
                   <td className="py-3 px-4 text-slate-400">{row.exit}</td>
+                  <td className="py-3 px-4 font-sans">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono font-bold">
+                          <Scan className="w-3 h-3 text-cyan-400" />
+                          <span>Facial 99.4%</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-800 font-mono">
+                          <Globe className="w-2.5 h-2.5 text-cyan-400" />
+                          <span>{ip}</span>
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-[180px]" title={loc}>
+                        <MapPin className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+                        <span className="truncate">{loc}</span>
+                      </span>
+                    </div>
+                  </td>
                   <td className="py-3 px-4 font-sans">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                       row.status === 'Presente'
@@ -224,7 +254,8 @@ export const PontoAdminView: React.FC<PontoAdminViewProps> = ({ onNavigate }) =>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

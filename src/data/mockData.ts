@@ -10,7 +10,8 @@ import {
   Sector,
   UserRole,
   UserRolePermissions,
-  OrganizationalSector
+  OrganizationalSector,
+  SupportTicket
 } from '../types';
 
 export const ORGANIZATIONAL_AREAS = [
@@ -117,6 +118,7 @@ export const SECTORS: Sector[] = [
   'RH',
   'Financeiro',
   'Gestão',
+  'Patrimônio',
   'N1',
   'N2',
   'N3',
@@ -1660,18 +1662,83 @@ export const TICKETS_DATA: SupportTicket[] = [
     priority: 'Média',
     status: 'Aberto',
     openTime: '2h 10m'
+  },
+  {
+    id: '#1094',
+    client: 'Setor Financeiro & Controladoria',
+    subject: 'Solicitação de Etiquetagem & Tombamento: 12 Cadeiras Ergonômicas NR17 e 4 Mesas Plataforma',
+    sector: 'Patrimônio',
+    assignedTo: 'Equipe de Patrimônio',
+    priority: 'Média',
+    status: 'Aberto',
+    openTime: '25 min'
+  },
+  {
+    id: '#1095',
+    client: 'Setor de TI & Infraestrutura',
+    subject: 'Emissão de Etiquetas com Código de Barras: 15 Monitores Dell 27 4K e 2 Switches Cisco',
+    sector: 'Patrimônio',
+    assignedTo: 'Equipe de Patrimônio',
+    priority: 'Alta',
+    status: 'Em atendimento',
+    openTime: '50 min'
+  },
+  {
+    id: '#1096',
+    client: 'Comercial & Diretoria',
+    subject: 'Tombamento e Vistoria: 3 Smart TVs 65/75 Sala de Reunião e 6 Armários de Aço',
+    sector: 'Patrimônio',
+    assignedTo: 'Equipe de Patrimônio',
+    priority: 'Baixa',
+    status: 'Resolvido',
+    openTime: '3h 10m'
   }
 ];
 
 export const EQUIPMENT_DATA = [
-  { id: 'eq-1', tag: 'PAT-0104', type: 'Notebook', model: 'Dell Latitude 5540 i7 32GB', assignee: 'Victor Estevão / Suporte N2', status: 'Em uso', deliveryDate: '10/01/2025' },
-  { id: 'eq-2', tag: 'PAT-0082', type: 'Notebook', model: 'MacBook Pro 16 M3 Max 36GB', assignee: 'Beatriz Lima / Front-End', status: 'Em uso', deliveryDate: '15/03/2025' },
-  { id: 'eq-3', tag: 'PAT-0012', type: 'Servidor', model: 'Dell PowerEdge R750 128GB', assignee: 'Datacenter SP01 / Suporte N3', status: 'Em uso', deliveryDate: '20/08/2024' },
-  { id: 'eq-4', tag: 'PAT-0045', type: 'Switch', model: 'Cisco Catalyst 2960X 48P PoE', assignee: 'Rack B / Suporte N3', status: 'Em uso', deliveryDate: '05/06/2024' },
-  { id: 'eq-5', tag: 'PAT-0118', type: 'Monitor', model: 'Dell UltraSharp 27 4K U2723QE', assignee: 'Camila Rocha / DBA', status: 'Em uso', deliveryDate: '12/04/2025' },
-  { id: 'eq-6', tag: 'PAT-0129', type: 'Headset', model: 'Jabra Evolve2 65 Wireless', assignee: 'Mariana Castro / Suporte N1', status: 'Em uso', deliveryDate: '01/02/2026' },
-  { id: 'eq-7', tag: 'PAT-0138', type: 'Notebook', model: 'ThinkPad T14s Gen 4 AMD', assignee: 'Estoque Central TI', status: 'Estoque', deliveryDate: '02/09/2026' },
-  { id: 'eq-8', tag: 'PAT-0099', type: 'Notebook', model: 'Dell Inspiron 5402 i5', assignee: 'Assistência Dell (Troca de tela)', status: 'Manutenção', deliveryDate: '11/09/2026' }
+  // Cadeiras & Assentos
+  { id: 'eq-1', tag: 'PAT-2026-0015', type: 'Cadeira', category: 'Mobiliário', model: 'Cadeira Ergonômica NR17 Mesh Black (Apoio Lombar e Braços 3D)', sector: 'Financeiro', assignee: 'Mariana Castro', status: 'Em uso', deliveryDate: '10/01/2025', location: 'Andar 2 • Sala 204', valueBRL: 'R$ 1.280,00' },
+  { id: 'eq-2', tag: 'PAT-2026-0016', type: 'Cadeira', category: 'Mobiliário', model: 'Cadeira Presidente em Couro Legítimo com Sistema Relax', sector: 'Diretoria', assignee: 'Dr. Roberto Ramos', status: 'Em uso', deliveryDate: '15/02/2025', location: 'Andar 3 • Gabinete Executivo', valueBRL: 'R$ 2.450,00' },
+  { id: 'eq-3', tag: 'PAT-2026-0017', type: 'Cadeira', category: 'Mobiliário', model: 'Cadeira Giratória Diretor Base Cromada', sector: 'Comercial', assignee: 'Lucas Andrade', status: 'Em uso', deliveryDate: '05/03/2025', location: 'Andar 1 • Vendas', valueBRL: 'R$ 980,00' },
+  { id: 'eq-4', tag: 'PAT-2026-0018', type: 'Cadeira', category: 'Mobiliário', model: 'Cadeira Ergonômica NR17 com Apoio de Cabeça Regulável', sector: 'Desenvolvimento', assignee: 'Beatriz Lima', status: 'Em uso', deliveryDate: '20/04/2025', location: 'Andar 2 • Squad Front-End', valueBRL: 'R$ 1.350,00' },
+
+  // Mesas & Estações de Trabalho
+  { id: 'eq-5', tag: 'PAT-2026-0031', type: 'Mesa', category: 'Mobiliário', model: 'Mesa Plataforma 4 Lugares Nogal com Calha de Fiação 2.40m', sector: 'Administrativo', assignee: 'Helena Santos & Equipe', status: 'Em uso', deliveryDate: '10/01/2025', location: 'Andar 1 • Administração Central', valueBRL: 'R$ 3.890,00' },
+  { id: 'eq-6', tag: 'PAT-2026-0032', type: 'Mesa', category: 'Mobiliário', model: 'Mesa de Reunião Oval 10 Lugares com Caixa de Conectividade HDMI/RJ45', sector: 'Geral', assignee: 'Sala de Reunião Principal A', status: 'Em uso', deliveryDate: '18/02/2025', location: 'Andar 2 • Sala de Reunião A', valueBRL: 'R$ 5.400,00' },
+  { id: 'eq-7', tag: 'PAT-2026-0033', type: 'Mesa', category: 'Mobiliário', model: 'Mesa em L Executiva com Gaveteiro Integrado 1.80m', sector: 'Financeiro', assignee: 'Carlos Eduardo (Controladoria)', status: 'Em uso', deliveryDate: '02/03/2025', location: 'Andar 2 • Sala 202', valueBRL: 'R$ 2.100,00' },
+  { id: 'eq-8', tag: 'PAT-2026-0034', type: 'Mesa', category: 'Mobiliário', model: 'Estação de Trabalho Operacional 2 Lugares com Biombo Acústico', sector: 'N1', assignee: 'Fila N1 - Suporte', status: 'Em uso', deliveryDate: '12/05/2025', location: 'Andar 1 • Central N1', valueBRL: 'R$ 2.750,00' },
+
+  // Computadores & Notebooks
+  { id: 'eq-9', tag: 'PAT-2026-0104', type: 'Computador', category: 'Informática', model: 'Notebook Dell Latitude 5540 Intel Core i7 32GB SSD 1TB', sector: 'N2', assignee: 'Victor Estevão', status: 'Em uso', deliveryDate: '10/01/2025', location: 'Remoto / Híbrido SP', valueBRL: 'R$ 8.900,00' },
+  { id: 'eq-10', tag: 'PAT-2026-0082', type: 'Computador', category: 'Informática', model: 'MacBook Pro 16" Apple M3 Max 36GB SSD 1TB Retina XDR', sector: 'Desenvolvimento', assignee: 'Beatriz Lima', status: 'Em uso', deliveryDate: '15/03/2025', location: 'Squad Front-End', valueBRL: 'R$ 24.500,00' },
+  { id: 'eq-11', tag: 'PAT-2026-0095', type: 'Computador', category: 'Informática', model: 'Workstation HP Z4 G5 Intel Xeon 64GB RTX A4000 16GB', sector: 'DBA', assignee: 'Camila Rocha', status: 'Em uso', deliveryDate: '22/04/2025', location: 'Andar 2 • Estação DBA', valueBRL: 'R$ 19.800,00' },
+  { id: 'eq-12', tag: 'PAT-2026-0138', type: 'Computador', category: 'Informática', model: 'ThinkPad T14s Gen 4 AMD Ryzen 7 PRO 32GB SSD 512GB', sector: 'TI / Infraestrutura', assignee: 'Estoque Central TI', status: 'Estoque', deliveryDate: '02/09/2026', location: 'Almoxarifado TI • Prateleira B2', valueBRL: 'R$ 7.600,00' },
+  { id: 'eq-13', tag: 'PAT-2026-0099', type: 'Computador', category: 'Informática', model: 'Dell Inspiron 5402 Intel Core i5 16GB SSD 256GB', sector: 'TI / Infraestrutura', assignee: 'Assistência Autorizada Dell (Substituição de Display)', status: 'Manutenção', deliveryDate: '11/09/2026', location: 'Laboratório Técnico', valueBRL: 'R$ 4.200,00' },
+
+  // Monitores
+  { id: 'eq-14', tag: 'PAT-2026-0118', type: 'Monitor', category: 'Informática', model: 'Monitor Dell UltraSharp 27" 4K IPS U2723QE Hub USB-C 90W', sector: 'DBA', assignee: 'Camila Rocha', status: 'Em uso', deliveryDate: '12/04/2025', location: 'Andar 2 • Sala DBA', valueBRL: 'R$ 3.850,00' },
+  { id: 'eq-15', tag: 'PAT-2026-0119', type: 'Monitor', category: 'Informática', model: 'Monitor LG UltraWide 29" IPS Full HD HDR10 29WP500', sector: 'N2', assignee: 'Gabriel Ribeiro', status: 'Em uso', deliveryDate: '28/05/2025', location: 'Andar 1 • Suporte N2', valueBRL: 'R$ 1.390,00' },
+  { id: 'eq-16', tag: 'PAT-2026-0120', type: 'Monitor', category: 'Informática', model: 'Monitor Samsung 24" IPS Full HD 75Hz Ajuste de Altura', sector: 'RH', assignee: 'Patricia Lima', status: 'Em uso', deliveryDate: '14/06/2025', location: 'Andar 1 • RH Pessoal', valueBRL: 'R$ 890,00' },
+
+  // Televisões & Painéis
+  { id: 'eq-17', tag: 'PAT-2026-0201', type: 'Televisão', category: 'Audiovisual', model: 'Smart TV Samsung Crystal 65" 4K UHD com Suporte Articulado', sector: 'Geral', assignee: 'Sala de Reunião A', status: 'Em uso', deliveryDate: '10/02/2025', location: 'Andar 2 • Parede Sala A', valueBRL: 'R$ 4.100,00' },
+  { id: 'eq-18', tag: 'PAT-2026-0202', type: 'Televisão', category: 'Audiovisual', model: 'Smart TV LG 55" NanoCell 4K HDR com Suporte Fixo e Apple TV', sector: 'Diretoria', assignee: 'Gabinete Executivo Diretoria', status: 'Em uso', deliveryDate: '25/02/2025', location: 'Andar 3 • Diretoria', valueBRL: 'R$ 3.600,00' },
+  { id: 'eq-19', tag: 'PAT-2026-0203', type: 'Televisão', category: 'Audiovisual', model: 'Smart TV Samsung Neo QLED 75" 4K com Soundbar Profissional', sector: 'Geral', assignee: 'Auditório Principal & Treinamento', status: 'Em uso', deliveryDate: '14/04/2025', location: 'Térreo • Auditório', valueBRL: 'R$ 9.800,00' },
+
+  // Armários & Gaveteiros
+  { id: 'eq-20', tag: 'PAT-2026-0301', type: 'Armário', category: 'Mobiliário', model: 'Armário de Aço 2 Portas Reforçado com Chave (4 Prateleiras Reguláveis)', sector: 'Administrativo', assignee: 'Arquivo Central / Helena Santos', status: 'Em uso', deliveryDate: '08/01/2025', location: 'Andar 1 • Sala de Arquivo', valueBRL: 'R$ 1.150,00' },
+  { id: 'eq-21', tag: 'PAT-2026-0302', type: 'Armário', category: 'Mobiliário', model: 'Gaveteiro Volante 3 Gavetas com Rodízios e Fechadura Escamoteável', sector: 'Financeiro', assignee: 'Estação Contábil - Carlos E.', status: 'Em uso', deliveryDate: '15/02/2025', location: 'Andar 2 • Sala 202', valueBRL: 'R$ 520,00' },
+  { id: 'eq-22', tag: 'PAT-2026-0303', type: 'Armário', category: 'Mobiliário', model: 'Arquivo Deslizante Modular de Alta Densidade (6 Módulos Chaveados)', sector: 'RH', assignee: 'Departamento Pessoal & Prontuários', status: 'Em uso', deliveryDate: '20/03/2025', location: 'Andar 1 • Arquivo RH', valueBRL: 'R$ 14.200,00' },
+
+  // Switchs, Racks & Conectividade
+  { id: 'eq-23', tag: 'PAT-2026-0045', type: 'Switch', category: 'Rede & Infra', model: 'Switch Cisco Catalyst 2960X 48P PoE+ 740W Gigabit Gerenciável', sector: 'N3', assignee: 'Rack B / Suporte N3 & Datacenter', status: 'Em uso', deliveryDate: '05/06/2024', location: 'Datacenter SP01 • Rack 02', valueBRL: 'R$ 16.500,00' },
+  { id: 'eq-24', tag: 'PAT-2026-0046', type: 'Switch', category: 'Rede & Infra', model: 'Switch Ubiquiti UniFi Enterprise 24 PoE 10G SFP+ Layer 3', sector: 'TI / Infraestrutura', assignee: 'Distribuição Rede Andar 2', status: 'Em uso', deliveryDate: '18/07/2024', location: 'Rack de Telecom • Andar 2', valueBRL: 'R$ 7.800,00' },
+  { id: 'eq-25', tag: 'PAT-2026-0012', type: 'Servidor', category: 'Rede & Infra', model: 'Dell PowerEdge R750 128GB RAM 4x 3.84TB SAS Enterprise', sector: 'N3', assignee: 'Datacenter SP01 / Cluster Virtualização', status: 'Em uso', deliveryDate: '20/08/2024', location: 'Datacenter SP01 • Rack 01', valueBRL: 'R$ 48.000,00' },
+  { id: 'eq-26', tag: 'PAT-2026-0050', type: 'Nobreak', category: 'Rede & Infra', model: 'Nobreak APC Smart-UPS 3000VA 230V Senoidal Puro Rack 2U com SNMP', sector: 'TI / Infraestrutura', assignee: 'Proteção Elétrica Datacenter', status: 'Em uso', deliveryDate: '12/09/2024', location: 'Datacenter SP01 • Base Rack 01', valueBRL: 'R$ 11.200,00' },
+
+  // Climatização & Escritório
+  { id: 'eq-27', tag: 'PAT-2026-0401', type: 'Climatização', category: 'Eletro & Escritório', model: 'Ar-Condicionado Split Inverter Daikin 24.000 BTUs Quente/Frio', sector: 'TI / Infraestrutura', assignee: 'Controle Térmico Datacenter (19°C)', status: 'Em uso', deliveryDate: '15/01/2025', location: 'Datacenter SP01', valueBRL: 'R$ 6.200,00' },
+  { id: 'eq-28', tag: 'PAT-2026-0402', type: 'Audiovisual', category: 'Audiovisual', model: 'Projetor Laser Epson PowerLite L520U 5.200 Lumens WUXGA Full HD', sector: 'Geral', assignee: 'Auditório Principal', status: 'Em uso', deliveryDate: '10/03/2025', location: 'Térreo • Teto Auditório', valueBRL: 'R$ 13.900,00' }
 ];
 
 

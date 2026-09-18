@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   FolderEdit,
   Plus,
@@ -21,25 +21,45 @@ import {
   Check,
   ChevronRight,
   Send,
-  Eye
+  Eye,
+  LifeBuoy,
+  Building2,
+  RefreshCw
 } from 'lucide-react';
-import { FORMS_DATA } from '../../data/mockData';
-import { FormTemplate } from '../../types';
-import { INITIAL_FORM_SUBMISSIONS } from '../../data/formSubmissions';
+import { FORMS_DATA, CURRENT_USER, SECTORS } from '../../data/mockData';
+import { FormTemplate, Collaborator, ViewScreen } from '../../types';
+import { activitySyncService } from '../../services/activitySyncService';
 import { exportFormSubmissionsToExcel, FormSubmissionRecord } from '../../utils/excelExport';
 
-export const FormsView: React.FC = () => {
+interface FormsViewProps {
+  currentUser?: Collaborator;
+  onNavigate?: (screen: ViewScreen) => void;
+}
+
+export const FormsView: React.FC<FormsViewProps> = ({
+  currentUser = CURRENT_USER,
+  onNavigate
+}) => {
   const [selectedForm, setSelectedForm] = useState<FormTemplate | null>(FORMS_DATA[0]);
   const [activeTab, setActiveTab] = useState<'preencher' | 'banco_dados'>('preencher');
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [submissions, setSubmissions] = useState<FormSubmissionRecord[]>(INITIAL_FORM_SUBMISSIONS);
+  const [submissions, setSubmissions] = useState<FormSubmissionRecord[]>(() => activitySyncService.getSubmissions());
   const [successMessage, setSuccessMessage] = useState(false);
   const [isNewFormModalOpen, setIsNewFormModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [dbSearch, setDbSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
+  const [colabFilter, setColabFilter] = useState<string>('TODOS');
+  const [setorFilter, setSetorFilter] = useState<string>('TODOS');
   const [isExporting, setIsExporting] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+
+  // Subscribe to real-time updates from activitySyncService (Help Desk finalizations)
+  useEffect(() => {
+    return activitySyncService.subscribe(() => {
+      setSubmissions(activitySyncService.getSubmissions());
+    });
+  }, []);
 
   // New form modal state
   const [newFormTitle, setNewFormTitle] = useState('');
@@ -49,19 +69,59 @@ export const FormsView: React.FC = () => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));
   };
 
-  // Submissions filtered by currently selected form
+  // Distinct collaborators list present in current form submissions
+  const availableCollaborators = useMemo(() => {
+    if (!selectedForm) return [];
+    const set = new Set<string>();
+    submissions
+      .filter(s => s.formId === selectedForm.id)
+      .forEach(s => {
+        const c = s.values['f_colab'] || s.submittedBy;
+        if (c) set.add(c);
+      });
+    return Array.from(set).sort();
+  }, [submissions, selectedForm]);
+
+  // Distinct sectors list present in current form submissions
+  const availableSectors = useMemo(() => {
+    if (!selectedForm) return [];
+    const set = new Set<string>();
+    submissions
+      .filter(s => s.formId === selectedForm.id)
+      .forEach(s => {
+        const sec = s.values['f_setor'];
+        if (sec) set.add(sec);
+      });
+    return Array.from(set).sort();
+  }, [submissions, selectedForm]);
+
+  // Submissions filtered by currently selected form and active filters
   const currentFormSubmissions = useMemo(() => {
     if (!selectedForm) return [];
     return submissions.filter(sub => {
       const matchForm = sub.formId === selectedForm.id;
       const matchStatus = statusFilter === 'TODOS' || sub.status === statusFilter;
+
+      // Colaborador filter
+      const colabVal = sub.values['f_colab'] || sub.submittedBy || '';
+      const matchColab =
+        colabFilter === 'TODOS' ||
+        colabVal.toLowerCase().includes(colabFilter.toLowerCase());
+
+      // Setor filter
+      const setorVal = sub.values['f_setor'] || '';
+      const matchSetor =
+        setorFilter === 'TODOS' ||
+        setorVal.toLowerCase().includes(setorFilter.toLowerCase());
+
       const matchSearch =
         sub.id.toLowerCase().includes(dbSearch.toLowerCase()) ||
         sub.submittedBy.toLowerCase().includes(dbSearch.toLowerCase()) ||
         Object.values(sub.values).some(v => String(v).toLowerCase().includes(dbSearch.toLowerCase()));
-      return matchForm && matchStatus && matchSearch;
+
+      return matchForm && matchStatus && matchColab && matchSetor && matchSearch;
     });
-  }, [submissions, selectedForm, statusFilter, dbSearch]);
+  }, [submissions, selectedForm, statusFilter, colabFilter, setorFilter, dbSearch]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,12 +133,12 @@ export const FormsView: React.FC = () => {
       formId: selectedForm.id,
       formTitle: selectedForm.title,
       submittedAt: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
-      submittedBy: formData['f_colab'] || formData['f_requisitante'] || 'Victor Estevão (Gestão ByComp)',
+      submittedBy: formData['f_colab'] || formData['f_requisitante'] || `${currentUser.name} (${currentUser.sector})`,
       status: 'Aprovado',
       values: { ...formData }
     };
 
-    setSubmissions(prev => [newRecord, ...prev]);
+    activitySyncService.addSubmission(newRecord);
     setSuccessMessage(true);
     setFormData({});
 
@@ -404,10 +464,45 @@ export const FormsView: React.FC = () => {
               {/* TAB 2: BANCO DE DADOS RELACIONAL & EXPORTAÇÃO EXCEL */}
               {activeTab === 'banco_dados' && (
                 <div className="space-y-4 animate-in fade-in duration-200">
-                  {/* Database Toolbar */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="relative flex-1 max-w-sm">
+                  {/* Fases 5 & 6 Integration Banner for "Registro de atividade" */}
+                  {selectedForm.id === 'form-1' && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-cyan-950/40 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-900/60 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
+                          <LifeBuoy className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">
+                              Integração Fases 5 & 6: Help Desk & Registro de Atividades
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">
+                              Ao Vivo
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-0.5">
+                            Ao finalizar chamados no Help Desk, a contagem é atualizada aqui instantaneamente. Filtre por <strong>Colaborador</strong> e <strong>Setor Responsável</strong> para gerar planilhas em Excel (.xlsx) com filtros automáticos.
+                          </p>
+                        </div>
+                      </div>
+
+                      {onNavigate && (
+                        <button
+                          onClick={() => onNavigate('chamados')}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                        >
+                          <LifeBuoy className="w-3.5 h-3.5" />
+                          <span>Ir para Chamados</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Database Filters & Export Toolbar */}
+                  <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                      {/* Search */}
+                      <div className="relative flex-1 min-w-[200px]">
                         <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
                         <input
                           type="text"
@@ -418,34 +513,99 @@ export const FormsView: React.FC = () => {
                         />
                       </div>
 
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono"
+                      {/* Filter Controls */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Colaborador que Finalizou o Chamado */}
+                        {selectedForm.id === 'form-1' && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">Colaborador:</span>
+                            <select
+                              value={colabFilter}
+                              onChange={(e) => setColabFilter(e.target.value)}
+                              className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-sans max-w-[180px]"
+                              title="Filtrar por Colaborador que finalizou o chamado"
+                            >
+                              <option value="TODOS">Colaborador: Todos</option>
+                              {availableCollaborators.map(colab => (
+                                <option key={colab} value={colab}>
+                                  {colab}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Setor Responsável */}
+                        {selectedForm.id === 'form-1' && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">Setor:</span>
+                            <select
+                              value={setorFilter}
+                              onChange={(e) => setSetorFilter(e.target.value)}
+                              className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
+                              title="Filtrar por Setor Responsável"
+                            >
+                              <option value="TODOS">Setor: Todos</option>
+                              {['N1', 'N2', 'N3', 'DBA', 'Cyber Security', 'Back-End', 'Front-End', 'Administrativo', 'Gestão'].map(sec => (
+                                <option key={sec} value={sec}>
+                                  {sec}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Status */}
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono"
+                        >
+                          <option value="TODOS">Status: Todos</option>
+                          <option value="Aprovado">Aprovado</option>
+                          <option value="Pendente">Pendente</option>
+                          <option value="Processado">Processado</option>
+                          <option value="Em Análise">Em Análise</option>
+                        </select>
+
+                        {(colabFilter !== 'TODOS' || setorFilter !== 'TODOS' || statusFilter !== 'TODOS' || dbSearch) && (
+                          <button
+                            onClick={() => {
+                              setColabFilter('TODOS');
+                              setSetorFilter('TODOS');
+                              setStatusFilter('TODOS');
+                              setDbSearch('');
+                            }}
+                            className="text-[11px] text-rose-400 hover:text-rose-300 underline px-1 cursor-pointer"
+                          >
+                            Limpar filtros
+                          </button>
+                        )}
+                      </div>
+
+                      {/* BOTÃO EXPORTAR EXCEL LITERAL COM FILTROS */}
+                      <button
+                        onClick={handleExportExcel}
+                        id="btn-exportar-excel-forms"
+                        disabled={isExporting}
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer shrink-0"
+                        title="Gera e faz download de um arquivo Excel .xlsx real com filtros automáticos em Colaborador e Setor"
                       >
-                        <option value="TODOS">Status: Todos</option>
-                        <option value="Aprovado">Aprovado</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Processado">Processado</option>
-                        <option value="Em Análise">Em Análise</option>
-                      </select>
+                        {isExporting ? (
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        <span>Exportar Excel (.xlsx)</span>
+                      </button>
                     </div>
 
-                    {/* BOTÃO EXPORTAR EXCEL LITERAL */}
-                    <button
-                      onClick={handleExportExcel}
-                      id="btn-exportar-excel-forms"
-                      disabled={isExporting}
-                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
-                      title="Gera e faz download de um arquivo Excel .xlsx real com todos os campos deste formulário"
-                    >
-                      {isExporting ? (
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      ) : (
-                        <Download className="w-4 h-4" />
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/60 pt-2 font-mono">
+                      <span>Exibindo <strong>{currentFormSubmissions.length}</strong> de <strong>{submissions.filter(s => s.formId === selectedForm.id).length}</strong> registros no banco</span>
+                      {selectedForm.id === 'form-1' && (
+                        <span className="text-emerald-400">Planilha Excel configurada com auto-filtros por Colaborador e Setor</span>
                       )}
-                      <span>Exportar Excel (.xlsx)</span>
-                    </button>
+                    </div>
                   </div>
 
                   {/* Tabela do Banco de Dados Dinâmica */}

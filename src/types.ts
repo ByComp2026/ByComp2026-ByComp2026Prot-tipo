@@ -24,7 +24,7 @@ export interface OrganizationalSector {
   isCustom?: boolean;
 }
 
-export type Priority = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
+export type Priority = 'Baixa' | 'Média' | 'Alta' | 'Urgente' | 'Crítica';
 
 export type TaskStatus = 'BACKLOG' | 'A_FAZER' | 'EM_ANDAMENTO' | 'EM_REVISAO' | 'CONCLUIDO';
 
@@ -192,10 +192,16 @@ export interface EquipmentItem {
   id: string;
   tag: string;
   type: string;
+  category?: 'Mobiliário' | 'Informática' | 'Rede & Infra' | 'Audiovisual' | 'Eletro & Escritório' | 'Geral';
   model: string;
+  sector?: string;
   assignee: string;
-  status: 'Em uso' | 'Estoque' | 'Manutenção';
+  status: 'Em uso' | 'Estoque' | 'Manutenção' | 'Baixado';
   deliveryDate: string;
+  barcode?: string;
+  location?: string;
+  acquisitionDate?: string;
+  valueBRL?: string;
 }
 
 export interface MarketingVideoItem {

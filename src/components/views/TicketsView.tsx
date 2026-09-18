@@ -20,7 +20,8 @@ import {
   Check,
   Sparkles,
   Info,
-  RefreshCw
+  RefreshCw,
+  Tag
 } from 'lucide-react';
 import { SupportTicket, Sector, Collaborator, ViewScreen } from '../../types';
 import { SECTORS, ALL_COLLABORATORS, CURRENT_USER } from '../../data/mockData';
@@ -51,6 +52,7 @@ export const normalizeSector = (sector: string = ''): string => {
   if (s.includes('rh')) return 'RH';
   if (s.includes('finan')) return 'Financeiro';
   if (s.includes('gest')) return 'Gestão';
+  if (s.includes('patrim')) return 'Patrimônio';
   return sector;
 };
 
@@ -146,6 +148,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       N1: 0,
       N2: 0,
       N3: 0,
+      Patrimônio: 0,
       DBA: 0,
       'Cyber Security': 0,
       'Back-End': 0,
@@ -269,6 +272,20 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
+                  const patUser = ALL_COLLABORATORS.find(c => c.name.includes('Carlos')) || ALL_COLLABORATORS[2];
+                  onSwitchUser({ ...patUser, sector: 'Patrimônio' as Sector, userRole: 'OPERACIONAL', name: 'Carlos Ramos (Patrimônio)' });
+                }}
+                className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
+                  !isManagementOrAdmin && userNormalizedSector === 'Patrimônio'
+                    ? 'bg-amber-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Simular Operador de Patrimônio & Ativos (Vê fila de Patrimônio)"
+              >
+                Patrimônio
+              </button>
+              <button
+                onClick={() => {
                   const gestaoUser = ALL_COLLABORATORS.find(c => c.name.includes('Helena Santos')) || ALL_COLLABORATORS[0];
                   onSwitchUser({ ...gestaoUser, sector: 'Gestão' as Sector, userRole: 'GESTOR' });
                 }}
@@ -379,7 +396,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                   </span>
                 </button>
 
-                {['N1', 'N2', 'N3', 'DBA', 'Cyber Security', 'Back-End', 'Front-End', 'Administrativo'].map((sec) => (
+                {['N1', 'N2', 'N3', 'Patrimônio', 'DBA', 'Cyber Security', 'Back-End', 'Front-End', 'Administrativo'].map((sec) => (
                   <button
                     key={sec}
                     onClick={() => setSelectedQueueSector(sec)}
@@ -547,6 +564,18 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                       >
                         Detalhes
                       </button>
+
+                      {/* Botão Especial Patrimônio / Gerar Etiqueta */}
+                      {(normalizeSector(ticket.sector) === 'Patrimônio' || ticket.subject.toLowerCase().includes('etiqueta') || ticket.subject.toLowerCase().includes('tombamento')) && onNavigate && (
+                        <button
+                          onClick={() => onNavigate('equipamentos')}
+                          className="px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          title="Abrir Emissor de Etiquetas de Patrimônio para este item"
+                        >
+                          <Tag className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Gerar Etiqueta</span>
+                        </button>
+                      )}
 
                       {/* 1. Botão "Assumir" */}
                       {ticket.status !== 'Resolvido' && (

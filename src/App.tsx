@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ViewScreen, Collaborator, UserRole } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { PresentationNavigatorModal } from './components/PresentationNavigatorModal';
 import { PresentationGuideModal } from './components/PresentationGuideModal';
 
@@ -100,6 +101,8 @@ export default function App() {
   const [isNavModalOpen, setIsNavModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isSimulatorModalOpen, setIsSimulatorModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPitchCollapsed, setIsPitchCollapsed] = useState(false);
 
   const handleSwitchRole = (role: UserRole) => {
     if (HIERARCHY_PERSONAS[role]) {
@@ -111,10 +114,10 @@ export default function App() {
     setCurrentUser(user);
   };
 
-  // Keyboard shortcut: Ctrl+K or Cmd+K opens quick navigator
+  // Keyboard shortcut: Ctrl+K, Cmd+K or Alt+K opens quick navigator
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsNavModalOpen((prev) => !prev);
       }
@@ -276,7 +279,7 @@ export default function App() {
       case 'dashboard':
         return <DashboardView onNavigate={setCurrentScreen} />;
       case 'formularios':
-        return <FormsView />;
+        return <FormsView currentUser={currentUser} onNavigate={setCurrentScreen} />;
       case 'planilhas':
         return <SmartSpreadsheetView />;
       case 'agenda':
@@ -290,7 +293,7 @@ export default function App() {
       case 'registro_atividades':
         return <ActivityRegisterView />;
       case 'registro_ponto':
-        return <TimeClockView />;
+        return <TimeClockView currentUser={currentUser} onNavigate={setCurrentScreen} />;
       case 'espelho_ponto':
         return <TimeCardMirrorView />;
       case 'gestao_ponto':
@@ -306,9 +309,15 @@ export default function App() {
       case 'clientes':
         return <ClientsView />;
       case 'chamados':
-        return <TicketsView />;
+        return (
+          <TicketsView
+            currentUser={currentUser}
+            onNavigate={setCurrentScreen}
+            onSwitchUser={setCurrentUser}
+          />
+        );
       case 'equipamentos':
-        return <EquipmentView />;
+        return <EquipmentView onNavigate={setCurrentScreen} />;
       case 'colaboradores':
         return (
           <CollaboratorsView
@@ -386,8 +395,8 @@ export default function App() {
         </div>
       ) : (
         // Standard Corporate Master Layout for Screens 2 to 22
-        <div className="flex h-screen overflow-hidden">
-          {/* Main Sidebar */}
+        <div className="flex h-screen overflow-hidden relative">
+          {/* Main Sidebar (Desktop persistent + Mobile slide-over drawer) */}
           <Sidebar
             currentScreen={currentScreen}
             onSelectScreen={setCurrentScreen}
@@ -398,10 +407,12 @@ export default function App() {
             onOpenGuideModal={() => setIsGuideModalOpen(true)}
             onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
             currentUser={currentUser}
+            isOpenOnMobile={isMobileMenuOpen}
+            onCloseMobile={() => setIsMobileMenuOpen(false)}
           />
 
           {/* Main Content Column */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
             {/* Top Corporate Navbar */}
             <Navbar
               currentScreen={currentScreen}
@@ -411,66 +422,99 @@ export default function App() {
               currentUser={currentUser}
               onSwitchUserRole={handleSwitchRole}
               onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+              onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
             />
 
-            {/* Scrollable Work Area */}
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-950/60">
+            {/* Scrollable Work Area - Responsive padding and safe bottom spacing for mobile */}
+            <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8 bg-slate-950/60 overflow-x-hidden">
               <div className="max-w-7xl mx-auto">
                 {renderActiveScreen()}
               </div>
             </main>
+
+            {/* Mobile Bottom Navigation Bar (Phones and portrait tablets) */}
+            <MobileBottomNav
+              currentScreen={currentScreen}
+              onSelectScreen={setCurrentScreen}
+              onOpenMenu={() => setIsMobileMenuOpen(true)}
+            />
           </div>
         </div>
       )}
 
-      {/* Floating Pitch Navigation Bar (Always available for smooth live presentation) */}
+      {/* Floating Pitch Navigation Bar (Responsive & Dockable so it never blocks mobile buttons) */}
       <div 
         id="floating-pitch-controls"
-        className="fixed bottom-4 right-4 z-40 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2 shadow-2xl flex items-center gap-2 animate-in fade-in"
+        className={`fixed z-30 transition-all duration-200 ${
+          isPitchCollapsed
+            ? 'bottom-20 lg:bottom-4 right-3'
+            : 'bottom-20 lg:bottom-4 right-2 sm:right-4'
+        }`}
       >
-        <button
-          onClick={() => prevScreen && setCurrentScreen(prevScreen)}
-          disabled={!prevScreen}
-          title={prevScreen ? `Voltar para ${prevScreen}` : 'Primeira tela'}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-200 transition-colors cursor-pointer"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+        {isPitchCollapsed ? (
+          <button
+            onClick={() => setIsPitchCollapsed(false)}
+            className="p-2.5 rounded-full bg-slate-900/95 border border-cyan-500/50 text-cyan-400 shadow-xl flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+            title="Expandir controle de 22 telas"
+          >
+            <Presentation className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-1.5 sm:p-2 shadow-2xl flex items-center gap-1.5 sm:gap-2 animate-in fade-in max-w-[95vw]">
+            <button
+              onClick={() => prevScreen && setCurrentScreen(prevScreen)}
+              disabled={!prevScreen}
+              title={prevScreen ? `Voltar para ${prevScreen}` : 'Primeira tela'}
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-200 transition-colors cursor-pointer shrink-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-        <button
-          onClick={() => setIsNavModalOpen(true)}
-          className="px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <Presentation className="w-3.5 h-3.5" />
-          <span>Tela {currentScreenIndex + 1}/22</span>
-        </button>
+            <button
+              onClick={() => setIsNavModalOpen(true)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            >
+              <Presentation className="w-3.5 h-3.5" />
+              <span>{currentScreenIndex + 1}/22</span>
+            </button>
 
-        <button
-          onClick={() => setIsGuideModalOpen(true)}
-          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-          title="Abrir Roteiro de Fala"
-        >
-          <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="hidden md:inline">Roteiro</span>
-        </button>
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title="Abrir Roteiro de Fala"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden md:inline">Roteiro</span>
+            </button>
 
-        <button
-          onClick={() => setIsSimulatorModalOpen(true)}
-          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-          title="Abrir Simulador de Usuários e Senhas RBAC"
-        >
-          <Key className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="hidden lg:inline">Senhas</span>
-        </button>
+            <button
+              onClick={() => setIsSimulatorModalOpen(true)}
+              className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 hover:text-white text-xs font-semibold items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title="Abrir Simulador de Usuários e Senhas RBAC"
+            >
+              <Key className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden lg:inline">Senhas</span>
+            </button>
 
-        <button
-          onClick={() => nextScreen && setCurrentScreen(nextScreen)}
-          disabled={!nextScreen}
-          title={nextScreen ? `Avançar para ${nextScreen}` : 'Última tela'}
-          className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:pointer-events-none text-white shadow-md transition-colors cursor-pointer"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+            <button
+              onClick={() => nextScreen && setCurrentScreen(nextScreen)}
+              disabled={!nextScreen}
+              title={nextScreen ? `Avançar para ${nextScreen}` : 'Última tela'}
+              className="p-1.5 sm:p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:pointer-events-none text-white shadow-md transition-colors cursor-pointer shrink-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {/* Collapse toggle for small screens */}
+            <button
+              onClick={() => setIsPitchCollapsed(true)}
+              className="p-1 text-slate-400 hover:text-slate-200 text-[10px] ml-0.5 rounded transition-colors cursor-pointer"
+              title="Minimizar barra"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Screen Quick-Jump Modal */}

@@ -49,6 +49,7 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
       if (s.includes('rh')) return 'rh';
       if (s.includes('finan')) return 'financeiro';
       if (s.includes('gest')) return 'gestão';
+      if (s.includes('patrim')) return 'patrimônio';
       return s;
     };
 
