@@ -361,8 +361,8 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     screen: 'equipamentos',
     screenTitle: 'Equipamentos & Hardware TI',
     category: 'COMERCIAL & ATIVOS',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
-    restrictionReason: 'Controle de patrimônio de infraestrutura, switches e servidores reservado a Gestores e TI.',
+    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
+    restrictionReason: 'Controle de patrimônio de infraestrutura, switches e servidores reservado a Gestores, Administrativo e equipe de Patrimônio.',
     recommendedRoleToTest: 'GESTOR'
   },
   whatsapp: {

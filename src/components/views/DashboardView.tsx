@@ -210,41 +210,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300" id="main-dashboard-container">
       {/* Welcome Header & View Mode Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 rounded-3xl border border-slate-800 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white/95 p-6 rounded-3xl border border-slate-200 shadow-xl">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl font-black text-[#37558d] tracking-tight">
               ByComp — Gestão Integrada
             </h1>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#37558d] text-white">
               100% Monitorada
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-[#37558d]/85 font-medium mt-1">
             Painel unificado conectando Administração, Suporte, Desenvolvimento, Dados e Segurança.
           </p>
         </div>
 
-        {/* Mode Toggle & UX/UI Shortcut */}
+        {/* Mode Toggle & Navigation */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Dashboard Mode Selector */}
-          <div className="flex items-center p-1 bg-slate-950 rounded-xl border border-slate-800">
+          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
             <button
               onClick={() => setDashboardMode('operacional')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                 dashboardMode === 'operacional'
-                  ? 'bg-cyan-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#37558d] text-white font-bold shadow-xs'
+                  : 'text-[#37558d] font-bold hover:bg-[#37558d] hover:text-white hover:font-bold'
               }`}
             >
               Visão Operacional
             </button>
             <button
               onClick={() => setDashboardMode('executivo')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                 dashboardMode === 'executivo'
-                  ? 'bg-cyan-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#37558d] text-white font-bold shadow-xs'
+                  : 'text-[#37558d] font-bold hover:bg-[#37558d] hover:text-white hover:font-bold'
               }`}
             >
               Visão Executiva (Gestão)
@@ -252,32 +252,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           </div>
 
           <button
-            onClick={() => onNavigate('design_system')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800 text-purple-200 text-xs font-bold transition-all cursor-pointer"
-            title="Acessar Wireframes, Mapa de Navegação e Design System (Fase 2)"
-          >
-            <Layers className="w-3.5 h-3.5 text-purple-300" />
-            <span>Fase 2: UX/UI Design</span>
-          </button>
-
-          <button
             onClick={() => onNavigate('organograma')}
             id="btn-dashboard-organograma"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 text-xs font-bold transition-all cursor-pointer"
-            title="Acessar Organograma Institucional, Estrutura e Linhas de Comando (Fase 3)"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] hover:text-white hover:font-bold border border-slate-200 text-[#37558d] text-xs font-bold transition-all cursor-pointer shadow-xs group"
+            title="Acessar Organograma Institucional"
           >
-            <Network className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Fase 3: Organograma</span>
+            <Network className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
+            <span className="group-hover:text-white group-hover:font-bold">Organograma</span>
           </button>
 
           <button
             onClick={() => onNavigate('colaboradores')}
-            id="btn-dashboard-colaboradores-fase4"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-200 text-xs font-bold transition-all cursor-pointer shadow-md"
-            title="Acessar Área Privada de Colaboradores e Dossiê RH (Fase 4 • Gestão, Adm e RH)"
+            id="btn-dashboard-colaboradores"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] hover:text-white hover:font-bold border border-slate-200 text-[#37558d] text-xs font-bold transition-all cursor-pointer shadow-xs group"
+            title="Acessar Área de Colaboradores"
           >
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Fase 4: Colaboradores (Privada)</span>
+            <Shield className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
+            <span className="group-hover:text-white group-hover:font-bold">Colaboradores</span>
           </button>
         </div>
       </div>
@@ -291,20 +282,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               key={kpi.id}
               id={kpi.id}
               onClick={() => onNavigate(kpi.action)}
-              className="p-4 rounded-2xl border bg-slate-900/80 hover:bg-slate-850 hover:border-slate-700 transition-all cursor-pointer group shadow-sm hover:shadow-md relative overflow-hidden"
+              className="p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-[#37558d] transition-all cursor-pointer group shadow-sm hover:shadow-lg relative overflow-hidden"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors truncate">
+                <span className="text-xs font-bold text-[#37558d] group-hover:text-white group-hover:font-bold transition-colors truncate">
                   {kpi.title}
                 </span>
-                <div className={`p-1.5 rounded-lg bg-slate-800 ${kpi.color}`}>
+                <div className="p-1.5 rounded-lg bg-blue-50 group-hover:bg-white/20 text-[#37558d] group-hover:text-white transition-colors">
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-white tracking-tight">
+              <div className="text-2xl font-black text-[#37558d] group-hover:text-white group-hover:font-bold tracking-tight transition-colors">
                 {kpi.value}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1 truncate">
+              <p className="text-[11px] text-[#37558d]/80 font-medium group-hover:text-white/90 mt-1 truncate transition-colors">
                 {kpi.label}
               </p>
             </div>
@@ -315,20 +306,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       {/* CONDITIONAL RENDERING: VISÃO EXECUTIVA (GESTOR/DIRETORIA) */}
       {dashboardMode === 'executivo' && (
         <div className="space-y-6 animate-in fade-in duration-200" id="executive-pillars-grid">
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/95 border border-slate-200 shadow-md">
             <div>
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4 text-[#37558d]" />
+                <h2 className="text-sm font-black text-[#37558d] uppercase tracking-wider">
                   Os 8 Pilares da Gestão Executiva ByComp
                 </h2>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
                 Monitoramento consolidado para tomada de decisão ágil sem ruído técnico.
               </p>
             </div>
 
-            <span className="text-xs font-mono text-cyan-300 bg-cyan-950 border border-cyan-800 px-3 py-1 rounded-full">
+            <span className="text-xs font-mono text-[#37558d] bg-blue-50 border border-blue-200 px-3 py-1 rounded-full font-bold">
               Visão Gerencial Ativa
             </span>
           </div>
@@ -340,40 +331,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 <div
                   key={ep.id}
                   onClick={() => onNavigate(ep.action)}
-                  className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-850 transition-all cursor-pointer shadow-lg flex flex-col justify-between group"
+                  className="p-5 rounded-2xl bg-white/95 border border-slate-200 hover:border-[#37558d] hover:bg-[#37558d] transition-all cursor-pointer shadow-md flex flex-col justify-between group"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-mono text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                      <span className="font-mono text-[10px] font-bold tracking-widest text-[#37558d]/80 group-hover:text-white uppercase">
                         {ep.pillar}
                       </span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${ep.badgeColor}`}>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${ep.badgeColor} group-hover:bg-white/20 group-hover:text-white group-hover:border-white/40`}>
                         {ep.badge}
                       </span>
                     </div>
 
                     <div className="flex items-start gap-3 mb-2">
-                      <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                      <div className="p-2 rounded-xl bg-blue-50 border border-blue-100 text-[#37558d] group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30 transition-colors">
                         <Icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white group-hover:text-cyan-200 transition-colors">
+                        <h3 className="text-sm font-bold text-[#37558d] group-hover:text-white transition-colors">
                           {ep.title}
                         </h3>
-                        <div className="text-lg font-black text-slate-100 mt-0.5">
+                        <div className="text-lg font-black text-[#37558d] group-hover:text-white mt-0.5">
                           {ep.metric}
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-400 leading-relaxed mt-2">
+                    <p className="text-xs text-[#37558d]/80 group-hover:text-white/90 leading-relaxed mt-2">
                       {ep.subtext}
                     </p>
                   </div>
 
-                  <div className="pt-3 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                    <span className="text-[11px] group-hover:text-slate-300">Explorar módulo</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                  <div className="pt-3 mt-4 border-t border-slate-200 group-hover:border-white/30 flex items-center justify-between text-xs text-[#37558d]">
+                    <span className="text-[11px] font-semibold group-hover:text-white">Explorar módulo</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               );
@@ -383,23 +374,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       )}
 
       {/* CONTROLE DE PONTO ELETRÔNICO HOJE */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+      <div className="bg-white/95 border border-slate-200 rounded-3xl p-5 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              <Clock className="w-4 h-4 text-[#37558d]" />
+              <h3 className="text-sm font-black text-[#37558d] uppercase tracking-wider">
                 Status do Ponto Eletrônico Hoje (48 Colaboradores)
               </h3>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
               Jornada de trabalho acompanhada em tempo real com tolerância legal de 10 min.
             </p>
           </div>
 
           <button
             onClick={() => onNavigate('gestao_ponto')}
-            className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 self-start sm:self-center"
+            className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 self-start sm:self-center"
           >
             <span>Gerenciar Ponto (Admin)</span>
             <ArrowRight className="w-3 h-3" />
@@ -412,11 +403,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             return (
               <div
                 key={idx}
-                className={`p-3.5 rounded-2xl border ${item.color} flex items-center justify-between`}
+                className={`p-3.5 rounded-2xl border ${item.color} flex items-center justify-between shadow-2xs`}
               >
                 <div>
                   <span className="text-xs font-semibold block opacity-80">{item.label}</span>
-                  <div className="text-xl font-black text-white mt-0.5">{item.count}</div>
+                  <div className="text-xl font-black mt-0.5">{item.count}</div>
                 </div>
                 <Icon className="w-5 h-5 opacity-80" />
               </div>
@@ -428,18 +419,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* GRÁFICO — PRODUTIVIDADE POR SETOR (7 cols) */}
-        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-cyan-400" />
-                <h3 className="font-bold text-sm text-white">PRODUTIVIDADE POR SETOR (SLA)</h3>
+                <TrendingUp className="w-4 h-4 text-[#37558d]" />
+                <h3 className="font-black text-sm text-[#37558d]">PRODUTIVIDADE POR SETOR (SLA)</h3>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
                 N1, N2, N3, Front-End, Back-End, Cyber Security e DBA
               </p>
             </div>
-            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-800/80 px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-mono text-[#37558d] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
               7 Setores Ativos
             </span>
           </div>
@@ -452,28 +443,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 onMouseEnter={() => setSelectedSector(sec.sector)}
                 onMouseLeave={() => setSelectedSector(null)}
                 className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                  selectedSector === sec.sector ? 'bg-slate-800/80' : 'hover:bg-slate-800/40'
+                  selectedSector === sec.sector ? 'bg-blue-50' : 'hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-200">{sec.sector}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">
+                    <span className="font-bold text-[#1e3a6c]">{sec.sector}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">
                       ({sec.tasksDone} concluídas • {sec.inProgress} em curso)
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono text-slate-400">Meta: {sec.SLA}</span>
-                    <span className="font-mono font-bold text-cyan-400 text-xs">
+                    <span className="text-[11px] font-mono text-slate-500">Meta: {sec.SLA}</span>
+                    <span className="font-mono font-bold text-[#37558d] text-xs">
                       {sec.score}%
                     </span>
                   </div>
                 </div>
 
                 {/* Progress Track */}
-                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-[#8ad0da] to-[#37558d] rounded-full transition-all duration-500"
                     style={{ width: `${sec.score}%` }}
                   ></div>
                 </div>
@@ -481,11 +472,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-            <span>Média geral da TI: <strong className="text-emerald-400 font-mono">93.2%</strong></span>
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
+            <span>Média geral da TI: <strong className="text-emerald-700 font-mono font-bold">93.2%</strong></span>
             <button
               onClick={() => onNavigate('relatorios')}
-              className="text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
             >
               <span>Ver relatório consolidado</span>
               <ArrowRight className="w-3 h-3" />
@@ -494,23 +485,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
 
         {/* GRÁFICO — STATUS DAS TAREFAS (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-bold text-sm text-white">STATUS DAS TAREFAS (126 TOTAL)</h3>
+                <CheckSquare className="w-4 h-4 text-[#37558d]" />
+                <h3 className="font-black text-sm text-[#37558d]">STATUS DAS TAREFAS (126 TOTAL)</h3>
               </div>
-              <span className="text-xs font-mono font-semibold text-slate-400">
+              <span className="text-xs font-mono font-bold text-[#37558d] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                 100% Pipeline
               </span>
             </div>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-[#37558d]/80 font-medium mb-4">
               Distribuição: Pendentes, Em andamento, Em revisão, Concluídas e Atrasadas
             </p>
 
             {/* Visual breakdown horizontal stacked meter */}
-            <div className="w-full h-4 bg-slate-800 rounded-lg overflow-hidden flex mb-5 shadow-inner">
+            <div className="w-full h-4 bg-slate-100 rounded-lg overflow-hidden flex mb-5 shadow-inner border border-slate-200">
               {TASK_STATUS_BREAKDOWN.map((st) => {
                 const pct = ((st.count / totalTasks) * 100).toFixed(1);
                 return (
@@ -531,18 +522,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 return (
                   <div
                     key={st.name}
-                    className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs"
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
                   >
                     <div className="flex items-center gap-2.5">
                       <span
                         className="w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: st.color }}
                       ></span>
-                      <span className="font-semibold text-slate-300">{st.name}</span>
+                      <span className="font-bold text-slate-800">{st.name}</span>
                     </div>
                     <div className="flex items-center gap-3 font-mono">
-                      <span className="text-white font-bold">{st.count}</span>
-                      <span className="text-slate-400 text-[11px] w-10 text-right">{pct}%</span>
+                      <span className="text-[#37558d] font-bold">{st.count}</span>
+                      <span className="text-slate-500 text-[11px] w-10 text-right font-medium">{pct}%</span>
                     </div>
                   </div>
                 );
@@ -550,11 +541,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
-            <span className="text-slate-400">Ciclo médio de entrega: <strong>1.8 dias</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center text-xs">
+            <span className="text-slate-600">Ciclo médio de entrega: <strong className="text-[#37558d] font-bold">1.8 dias</strong></span>
             <button
               onClick={() => onNavigate('meu_kanban')}
-              className="text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
             >
               <span>Abrir Meu Kanban</span>
               <ArrowRight className="w-3 h-3" />
@@ -566,15 +557,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       {/* Bottom Row: ATIVIDADES DA SEMANA & AGENDA & ALERTAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ATIVIDADES RECENTES (7 cols) */}
-        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg">
+        <div className="lg:col-span-7 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-cyan-400" />
-              <h3 className="font-bold text-sm text-white">ATIVIDADES DA SEMANA & REGISTROS</h3>
+              <Clock className="w-4 h-4 text-[#37558d]" />
+              <h3 className="font-black text-sm text-[#37558d]">ATIVIDADES DA SEMANA & REGISTROS</h3>
             </div>
             <button
               onClick={() => onNavigate('planilhas')}
-              className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+              className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
             >
               <span>Base Completa de Atividades</span>
               <ArrowRight className="w-3 h-3" />
@@ -585,19 +576,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             {RECENT_ACTIVITIES.map((act, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-white transition-all shadow-2xs"
               >
-                <span className="font-mono text-xs font-bold text-cyan-400 px-2 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 shrink-0">
+                <span className="font-mono text-xs font-bold text-[#37558d] px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-200 shrink-0">
                   {act.time}
                 </span>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-200 truncate">
+                  <p className="text-xs font-bold text-slate-800 truncate">
                     {act.text}
                   </p>
                 </div>
 
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 shrink-0">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 text-[#37558d] border border-slate-200 shrink-0">
                   {act.sector}
                 </span>
               </div>
@@ -606,17 +597,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
 
         {/* AGENDA DO DIA & ALERTAS (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between space-y-4">
           <div>
             {/* AGENDA HOJE */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-teal-400" />
-                <h3 className="font-bold text-sm text-white">AGENDA DO DIA</h3>
+                <Calendar className="w-4 h-4 text-[#37558d]" />
+                <h3 className="font-black text-sm text-[#37558d]">AGENDA DO DIA</h3>
               </div>
               <button
                 onClick={() => onNavigate('agenda')}
-                className="text-[11px] text-teal-400 hover:underline"
+                className="text-[11px] text-[#37558d] font-bold hover:underline"
               >
                 Ver calendário
               </button>
@@ -626,13 +617,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               {MOCK_CALENDAR_EVENTS.slice(0, 2).map((ev) => (
                 <div
                   key={ev.id}
-                  className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs flex items-center justify-between"
+                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between"
                 >
                   <div>
-                    <span className="font-semibold text-slate-200 block">{ev.title}</span>
-                    <span className="text-[11px] text-slate-400">{ev.location} • {ev.type}</span>
+                    <span className="font-bold text-slate-800 block">{ev.title}</span>
+                    <span className="text-[11px] text-[#37558d]/75 font-medium">{ev.location} • {ev.type}</span>
                   </div>
-                  <span className="font-mono text-teal-400 font-bold px-2 py-0.5 rounded bg-teal-950/80 border border-teal-800 text-[10px]">
+                  <span className="font-mono text-[#37558d] font-bold px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[10px]">
                     {ev.time}
                   </span>
                 </div>
@@ -640,12 +631,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             </div>
 
             {/* ALERTAS */}
-            <div className="flex items-center justify-between mb-3 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-between mb-3 pt-3 border-t border-slate-200">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <h3 className="font-bold text-sm text-white">ALERTAS & NOTIFICAÇÕES</h3>
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <h3 className="font-black text-sm text-[#37558d]">ALERTAS & NOTIFICAÇÕES</h3>
               </div>
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
             </div>
 
             <div className="space-y-2.5">
@@ -654,18 +645,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   key={alert.id}
                   className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
                     alert.type === 'warning'
-                      ? 'bg-amber-950/30 border-amber-800/60 text-amber-200'
-                      : 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-900'
                   }`}
                 >
                   {alert.type === 'warning' ? (
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   ) : (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   )}
                   <div>
-                    <p className="font-semibold text-xs">{alert.text}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{alert.time}</p>
+                    <p className="font-bold text-xs">{alert.text}</p>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">{alert.time}</p>
                   </div>
                 </div>
               ))}
@@ -674,10 +665,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
           <button
             onClick={() => onNavigate('auditoria')}
-            className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-[#37558d] hover:text-white text-xs font-bold text-[#37558d] flex items-center justify-center gap-1.5 transition-all border border-slate-200 cursor-pointer shadow-2xs group"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Consultar Log de Auditoria & Segurança</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
+            <span className="group-hover:text-white group-hover:font-bold">Consultar Log de Auditoria & Segurança</span>
           </button>
         </div>
       </div>

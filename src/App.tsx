@@ -358,33 +358,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950 antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-[#8ad0da]/40 selection:text-[#121a2d] antialiased">
       {currentScreen === 'login' ? (
         // Login View has its own self-contained corporate visual framing
         <div className="relative min-h-screen flex flex-col">
           {/* Subtle top banner during login to jump directly to other screens if presenter desires */}
-          <div className="bg-slate-900/90 border-b border-slate-800/80 px-4 py-2 flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between text-xs text-slate-600 shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-              <span className="font-mono text-cyan-300 font-semibold">ByComp Protótipo</span>
+              <span className="w-2 h-2 rounded-full bg-[#8ad0da]"></span>
+              <span className="font-mono text-[#334b84] font-semibold">ByComp Protótipo</span>
               <span className="hidden sm:inline text-slate-500">• Tela 1 de 22</span>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsGuideModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-slate-200"
               >
-                <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                <BookOpen className="w-3.5 h-3.5 text-[#334b84]" />
                 <span>Guia do Apresentador</span>
               </button>
 
               <button
                 onClick={() => setIsNavModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-[#334b84] hover:bg-[#37558d] text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm"
               >
-                <Presentation className="w-3.5 h-3.5" />
-                <span>Pular para qualquer tela</span>
+                <Presentation className="w-3.5 h-3.5 text-[#8ad0da]" />
+                <span className="text-white">Pular para qualquer tela</span>
               </button>
             </div>
           </div>
@@ -425,8 +425,8 @@ export default function App() {
               onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
             />
 
-            {/* Scrollable Work Area - Responsive padding and safe bottom spacing for mobile */}
-            <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8 bg-slate-950/60 overflow-x-hidden">
+            {/* Scrollable Work Area - Clean & Responsive with brand background #7da2ca */}
+            <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-20 lg:pb-8 bg-[#7da2ca] overflow-x-hidden">
               <div className="max-w-7xl mx-auto">
                 {renderActiveScreen()}
               </div>
@@ -441,81 +441,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Floating Pitch Navigation Bar (Responsive & Dockable so it never blocks mobile buttons) */}
-      <div 
-        id="floating-pitch-controls"
-        className={`fixed z-30 transition-all duration-200 ${
-          isPitchCollapsed
-            ? 'bottom-20 lg:bottom-4 right-3'
-            : 'bottom-20 lg:bottom-4 right-2 sm:right-4'
-        }`}
-      >
-        {isPitchCollapsed ? (
-          <button
-            onClick={() => setIsPitchCollapsed(false)}
-            className="p-2.5 rounded-full bg-slate-900/95 border border-cyan-500/50 text-cyan-400 shadow-xl flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-            title="Expandir controle de 22 telas"
-          >
-            <Presentation className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-1.5 sm:p-2 shadow-2xl flex items-center gap-1.5 sm:gap-2 animate-in fade-in max-w-[95vw]">
-            <button
-              onClick={() => prevScreen && setCurrentScreen(prevScreen)}
-              disabled={!prevScreen}
-              title={prevScreen ? `Voltar para ${prevScreen}` : 'Primeira tela'}
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-200 transition-colors cursor-pointer shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => setIsNavModalOpen(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-            >
-              <Presentation className="w-3.5 h-3.5" />
-              <span>{currentScreenIndex + 1}/22</span>
-            </button>
-
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold items-center gap-1 transition-colors cursor-pointer shrink-0"
-              title="Abrir Roteiro de Fala"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden md:inline">Roteiro</span>
-            </button>
-
-            <button
-              onClick={() => setIsSimulatorModalOpen(true)}
-              className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 hover:text-white text-xs font-semibold items-center gap-1 transition-colors cursor-pointer shrink-0"
-              title="Abrir Simulador de Usuários e Senhas RBAC"
-            >
-              <Key className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden lg:inline">Senhas</span>
-            </button>
-
-            <button
-              onClick={() => nextScreen && setCurrentScreen(nextScreen)}
-              disabled={!nextScreen}
-              title={nextScreen ? `Avançar para ${nextScreen}` : 'Última tela'}
-              className="p-1.5 sm:p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:pointer-events-none text-white shadow-md transition-colors cursor-pointer shrink-0"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            {/* Collapse toggle for small screens */}
-            <button
-              onClick={() => setIsPitchCollapsed(true)}
-              className="p-1 text-slate-400 hover:text-slate-200 text-[10px] ml-0.5 rounded transition-colors cursor-pointer"
-              title="Minimizar barra"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Screen Quick-Jump Modal */}
       <PresentationNavigatorModal

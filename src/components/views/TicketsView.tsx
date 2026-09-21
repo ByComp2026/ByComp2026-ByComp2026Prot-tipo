@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   LifeBuoy,
+  PlusCircle,
   Search,
   Filter,
   Clock,
@@ -31,6 +32,7 @@ import { TicketFinalizeModal } from './helpdesk/TicketFinalizeModal';
 import { KnowledgeBaseExplorer } from './helpdesk/KnowledgeBaseExplorer';
 import { TicketDetailsModal } from './helpdesk/TicketDetailsModal';
 import { LinkedActivitiesTab } from './helpdesk/LinkedActivitiesTab';
+import { CreateTicketModal } from './helpdesk/CreateTicketModal';
 
 interface TicketsViewProps {
   currentUser?: Collaborator;
@@ -70,6 +72,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modals state
+  const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
   const [transferTicket, setTransferTicket] = useState<SupportTicket | null>(null);
   const [finalizeTicket, setFinalizeTicket] = useState<SupportTicket | null>(null);
   const [detailsTicket, setDetailsTicket] = useState<SupportTicket | null>(null);
@@ -189,6 +192,17 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
     setTimeout(() => setToastMessage(null), 5000);
   };
 
+  const handleCreateTicketSuccess = (newTicket: SupportTicket, msg: string) => {
+    setIsCreateTicketModalOpen(false);
+    setTickets(activitySyncService.getTickets());
+    setActiveTab('tickets');
+    if (isManagementOrAdmin && selectedQueueSector !== 'TODOS' && normalizeSector(newTicket.sector) !== selectedQueueSector) {
+      setSelectedQueueSector('TODOS');
+    }
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Toast Notification */}
@@ -200,40 +214,51 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       )}
 
       {/* Top Header & Session Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-600/30">
-              <LifeBuoy className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#334b84] to-[#37558d] flex items-center justify-center text-white shadow-md shadow-[#334b84]/20">
+              <LifeBuoy className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-black text-[#37558d] tracking-tight">
                   Help Desk & Gestão de Chamados
                 </h1>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#37558d]/15 text-[#37558d] border border-[#37558d]/30">
                   Fases 5 & 6
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
                 Filas setoriais por nível de serviço, transferência de grupos, Base de Conhecimento e exportação para Excel
               </p>
             </div>
           </div>
         </div>
 
-        {/* Current Operator & Role Badge */}
+        {/* Current Operator & Role Badge + Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2 text-xs">
-            <div className="w-6 h-6 rounded-full bg-cyan-950 text-cyan-400 font-bold flex items-center justify-center text-[11px] border border-cyan-800">
+          {/* Create Ticket Primary Action Button */}
+          <button
+            id="btn-abrir-chamado-topo"
+            onClick={() => setIsCreateTicketModalOpen(true)}
+            className="px-4 py-2 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-[#334b84]/25 cursor-pointer transition-all active:scale-95"
+            title="Criar um novo chamado de suporte técnico"
+          >
+            <PlusCircle className="w-4 h-4 text-white" />
+            <span className="text-white">Criar Chamado</span>
+          </button>
+
+          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs">
+            <div className="w-6 h-6 rounded-full bg-[#334b84]/15 text-[#334b84] font-bold flex items-center justify-center text-[11px] border border-[#334b84]/30">
               {currentUser.name.charAt(0)}
             </div>
             <div>
-              <div className="text-[11px] font-bold text-white leading-none">{currentUser.name}</div>
-              <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                <span>Setor: <strong className="text-cyan-400 font-mono">{currentUser.sector}</strong></span>
+              <div className="text-[11px] font-bold text-slate-800 leading-none">{currentUser.name}</div>
+              <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                <span>Setor: <strong className="text-[#334b84] font-mono">{currentUser.sector}</strong></span>
                 <span>•</span>
-                <span className="text-slate-300 font-medium">{currentUser.userRole}</span>
+                <span className="text-slate-600 font-medium">{currentUser.userRole}</span>
               </div>
             </div>
           </div>
@@ -244,8 +269,35 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               <span className="text-slate-500 px-1 text-[10px] uppercase font-bold">Simular:</span>
               <button
                 onClick={() => {
+                  onSwitchUser(CURRENT_USER);
+                }}
+                className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
+                  currentUser.userRole === 'SUPER_ADMIN'
+                    ? 'bg-purple-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Restaurar Super Administrador (Acesso Total)"
+              >
+                Super Admin
+              </button>
+              <button
+                onClick={() => {
+                  const gestaoUser = ALL_COLLABORATORS.find(c => c.name.includes('Helena Santos')) || ALL_COLLABORATORS[0];
+                  onSwitchUser({ ...gestaoUser, sector: 'Gestão' as Sector, userRole: 'GESTOR' });
+                }}
+                className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
+                  currentUser.userRole === 'GESTOR'
+                    ? 'bg-emerald-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Simular Gestão / Administrativo (Acesso a Todos)"
+              >
+                Gestão/Adm
+              </button>
+              <button
+                onClick={() => {
                   const n1User = ALL_COLLABORATORS.find(c => c.name.includes('Gabriel Ribeiro')) || ALL_COLLABORATORS[0];
-                  onSwitchUser({ ...n1User, sector: 'N1' as Sector, userRole: 'OPERACIONAL' });
+                  onSwitchUser({ ...n1User, sector: 'N1' as Sector, userRole: 'COLABORADOR' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'N1'
@@ -258,8 +310,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const n2User = ALL_COLLABORATORS.find(c => c.name.includes('Victor Estevão')) || ALL_COLLABORATORS[1];
-                  onSwitchUser({ ...n2User, sector: 'N2' as Sector, userRole: 'OPERACIONAL' });
+                  const n2User = ALL_COLLABORATORS.find(c => c.sector === 'N2' || c.name.includes('Carlos Silva')) || ALL_COLLABORATORS[1];
+                  onSwitchUser({ ...n2User, sector: 'N2' as Sector, userRole: 'COLABORADOR', name: 'Lucas Pires (N2)' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'N2'
@@ -272,8 +324,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const patUser = ALL_COLLABORATORS.find(c => c.name.includes('Carlos')) || ALL_COLLABORATORS[2];
-                  onSwitchUser({ ...patUser, sector: 'Patrimônio' as Sector, userRole: 'OPERACIONAL', name: 'Carlos Ramos (Patrimônio)' });
+                  const patUser = ALL_COLLABORATORS.find(c => c.sector === 'Patrimônio' || c.name.includes('Carlos')) || ALL_COLLABORATORS[2];
+                  onSwitchUser({ ...patUser, sector: 'Patrimônio' as Sector, userRole: 'COLABORADOR', name: 'Carlos Ramos (Patrimônio)' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'Patrimônio'
@@ -283,20 +335,6 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                 title="Simular Operador de Patrimônio & Ativos (Vê fila de Patrimônio)"
               >
                 Patrimônio
-              </button>
-              <button
-                onClick={() => {
-                  const gestaoUser = ALL_COLLABORATORS.find(c => c.name.includes('Helena Santos')) || ALL_COLLABORATORS[0];
-                  onSwitchUser({ ...gestaoUser, sector: 'Gestão' as Sector, userRole: 'GESTOR' });
-                }}
-                className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
-                  isManagementOrAdmin
-                    ? 'bg-emerald-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-                title="Simular Gestão / Administrativo (Acesso a Todos)"
-              >
-                Gestão/Adm (Todos)
               </button>
             </div>
           )}
@@ -463,15 +501,35 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                 <option value="Média">Média</option>
                 <option value="Baixa">Baixa</option>
               </select>
+
+              <button
+                type="button"
+                id="btn-criar-chamado-busca"
+                onClick={() => setIsCreateTicketModalOpen(true)}
+                className="px-3 py-1.5 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+                title="Abrir Novo Chamado"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-white" />
+                <span className="hidden md:inline text-white">Novo Chamado</span>
+              </button>
             </div>
           </div>
 
           {/* Tickets Cards & Table */}
           {filteredTickets.length === 0 ? (
-            <div className="p-12 text-center bg-slate-900/60 border border-slate-800 rounded-2xl space-y-2">
-              <LifeBuoy className="w-8 h-8 text-slate-600 mx-auto" />
-              <p className="text-sm font-bold text-slate-300">Nenhum chamado encontrado para esta fila ou filtro.</p>
+            <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl space-y-3 shadow-xs">
+              <LifeBuoy className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="text-sm font-bold text-slate-800">Nenhum chamado encontrado para esta fila ou filtro.</p>
               <p className="text-xs text-slate-500">Tente ajustar o termo de busca ou alternar para outra fila de atendimento.</p>
+              <button
+                type="button"
+                id="btn-abrir-primeiro-chamado"
+                onClick={() => setIsCreateTicketModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-[#334b84]/20 active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4 text-white" />
+                <span className="text-white">Criar Primeiro Chamado</span>
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -642,6 +700,14 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       )}
 
       {/* MODALS */}
+      {isCreateTicketModalOpen && (
+        <CreateTicketModal
+          currentUser={currentUser}
+          onClose={() => setIsCreateTicketModalOpen(false)}
+          onSuccess={handleCreateTicketSuccess}
+        />
+      )}
+
       {transferTicket && (
         <TicketTransferModal
           ticket={transferTicket}

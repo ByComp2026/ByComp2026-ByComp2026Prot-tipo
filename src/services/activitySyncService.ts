@@ -143,6 +143,68 @@ class ActivitySyncService {
     return [...this.tickets];
   }
 
+  public createTicket(params: {
+    client: string;
+    subject: string;
+    sector: Sector;
+    priority: Priority;
+    description?: string;
+    serviceType?: string;
+    assignToMe?: boolean;
+    currentUser: Collaborator;
+  }): SupportTicket {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // Generate new ID: extract numbers from existing ticket IDs
+    let maxNum = 1088;
+    this.tickets.forEach(t => {
+      const numMatch = t.id.match(/\d+/);
+      if (numMatch) {
+        const parsed = parseInt(numMatch[0], 10);
+        if (parsed > maxNum) maxNum = parsed;
+      }
+    });
+    const newId = `#${maxNum + 1}`;
+
+    const slaMap: Record<string, string> = {
+      'Crítica': '15 min',
+      'Urgente': '30 min',
+      'Alta': '45 min',
+      'Média': '2h 00m',
+      'Baixa': '4h 00m'
+    };
+
+    const newTicket: SupportTicket = {
+      id: newId,
+      client: params.client.trim() || 'Interno / ByComp',
+      subject: params.subject.trim(),
+      sector: params.sector,
+      priority: params.priority,
+      status: params.assignToMe ? 'Em atendimento' : 'Aberto',
+      assignedTo: params.assignToMe ? params.currentUser.name : undefined,
+      assignedAvatar: params.assignToMe ? params.currentUser.avatar : undefined,
+      openTime: slaMap[params.priority] || '1h 00m',
+      serviceType: params.serviceType || 'Suporte Geral',
+      description: params.description,
+      history: [
+        {
+          timestamp: `${dateStr} ${timeStr}`,
+          action: 'Chamado aberto no sistema',
+          user: params.currentUser.name,
+          userSector: params.currentUser.sector,
+          details: `Aberto por ${params.currentUser.name} (${params.currentUser.sector}) para a fila do setor [${params.sector}]. Prioridade: ${params.priority}.${params.assignToMe ? ' Atribuído diretamente ao solicitante.' : ' Aguardando triagem técnica do setor.'}`
+        }
+      ]
+    };
+
+    this.tickets.unshift(newTicket);
+    this.saveTickets();
+    this.notify();
+    return newTicket;
+  }
+
   public takeTicket(ticketId: string, currentUser: Collaborator): SupportTicket {
     const ticket = this.tickets.find(t => t.id === ticketId);
     if (!ticket) throw new Error(`Chamado ${ticketId} não encontrado.`);
