@@ -90,20 +90,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'VISÃO GERAL',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'organograma', label: 'Organograma', icon: Network },
-        { id: 'colaboradores', label: 'Colaboradores', icon: Users }
+        { id: 'organograma', label: 'Organograma', icon: Network, badge: 'Admin'},
+        { id: 'colaboradores', label: 'Colaboradores', icon: Users, badge: 'Admin'}
       ]
     },
     {
       title: 'OPERAÇÃO & TAREFAS',
       items: [
-        { id: 'chamados', label: 'Help Desk & Chamados', icon: LifeBuoy, badge: 6 },
+        { id: 'chamados', label: 'Help Desk & Chamados', icon: LifeBuoy},
         { id: 'meu_kanban', label: 'Meu Kanban', icon: Kanban },
-        { id: 'kanban_equipe', label: 'Kanban da Equipe', icon: Kanban },
-        { id: 'visao_semanal', label: 'Planejamento Semanal', icon: Calendar },
-        { id: 'planilhas', label: 'Base de Atividades', icon: FileSpreadsheet },
-        { id: 'formularios', label: 'Formulários & Banco', icon: FolderEdit },
-        { id: 'registro_atividades', label: 'Registrar Atividade', icon: FileText }
+        { id: 'kanban_equipe', label: 'Kanban da Equipe', icon: Kanban, badge: 'Admin'},
+        { id: 'visao_semanal', label: 'Planejamento Semanal', icon: Calendar, badge: 'Admin'},
+        { id: 'planilhas', label: 'Base de Atividades', icon: FileSpreadsheet, badge: 'Admin'},
+        { id: 'formularios', label: 'Formulários & Banco', icon: FolderEdit, badge: 'Admin'},
+        { id: 'registro_atividades', label: 'Registrar Atividade', icon: FileText}
       ]
     },
     {
@@ -111,34 +111,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'registro_ponto', label: 'Registro de Ponto', icon: Clock, highlight: true },
         { id: 'espelho_ponto', label: 'Espelho de Ponto', icon: FileSpreadsheet },
-        { id: 'gestao_ponto', label: 'Gestão de Ponto (Admin)', icon: Users, badge: 'Admin' },
+        { id: 'gestao_ponto', label: 'Gestão de Ponto', icon: Users, badge: 'Admin'},
         { id: 'agenda', label: 'Agenda & Reuniões', icon: Calendar }
       ]
     },
     {
       title: 'COMERCIAL & ATIVOS',
       items: [
-        { id: 'clientes', label: 'Gestão de Clientes', icon: Building2, badge: 5 },
-        { id: 'equipamentos', label: 'Gestão de Ativos', icon: HardDrive },
-        { id: 'whatsapp', label: 'WhatsApp Business', icon: MessageSquare, badge: 2, highlight: true }
+        { id: 'clientes', label: 'Gestão de Clientes', icon: Building2, badge: 'Admin'},
+        { id: 'equipamentos', label: 'Gestão de Ativos', icon: HardDrive, badge: 'Admin'},
+        { id: 'whatsapp', label: 'WhatsApp Business', icon: MessageSquare, highlight: true, badge: 'N1'}
       ]
     },
     {
       title: 'MARKETING & IA',
       items: [
-        { id: 'ai_hub', label: 'AI HUB', icon: Sparkles, badge: 'IA' },
-        { id: 'marketing_hub', label: 'Marketing & Vídeos IA', icon: Video, badge: 'Novo' },
-        { id: 'social_ai', label: 'Social AI', icon: Sparkles },
-        { id: 'gerador_video', label: 'AI Video Studio', icon: Video },
-        { id: 'instagram', label: 'Instagram', icon: Instagram },
-        { id: 'tiktok', label: 'TikTok', icon: Share2 }
+        { id: 'ai_hub', label: 'AI HUB', icon: Sparkles, badge: 'GS_Markting' },
+        { id: 'marketing_hub', label: 'Marketing & Vídeos IA', icon: Video, badge: 'GS_Markting'},
+        { id: 'social_ai', label: 'Social AI', icon: Sparkles, badge: 'GS_Markting' },
+        { id: 'gerador_video', label: 'AI Video Studio', icon: Video, badge: 'GS_Markting' },
+        { id: 'instagram', label: 'Instagram', icon: Instagram, badge: 'GS_Markting' },
+        { id: 'tiktok', label: 'TikTok', icon: Share2, badge: 'GS_Markting' }
       ]
     },
     {
       title: 'GOVERNANÇA',
       items: [
-        { id: 'relatorios', label: 'Central de Relatórios', icon: BarChart3 },
-        { id: 'auditoria', label: 'Auditoria do Sistema', icon: ShieldCheck },
+        { id: 'relatorios', label: 'Central de Relatórios', icon: BarChart3, badge: 'Admin'},
+        { id: 'auditoria', label: 'Auditoria do Sistema', icon: ShieldCheck, badge: 'Admin'},
         { id: 'configuracoes', label: 'Configurações', icon: Settings }
       ]
     }
