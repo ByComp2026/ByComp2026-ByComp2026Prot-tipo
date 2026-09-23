@@ -165,21 +165,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Brand Header */}
         <div className="p-4 border-b border-[#37558d]/30 flex items-center justify-between bg-[#7da2ca]">
-          <div 
+          <div
             onClick={() => handleSelect('dashboard')}
             className="flex items-center gap-2 cursor-pointer group"
             id="sidebar-brand-logo"
             title="ByComp - enable the future"
           >
-            <div>
-              <img 
-                src="/bycomp-logo.svg" 
-                alt="ByComp" 
-                className="h-7.5 max-w-[300px] w-auto object-contain group-hover:scale-105 transition-transform" 
-              />
-              <h1>
-              Enable The Future
-              </h1>
+            <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-center z-10 mb-5 mt-8">
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-5xl tracking-tight text-[#37558d]">ByComp</span>
+                </div>
+                <p className="text-xs text-[#37558d] font-bold mt-3">Enable The Future</p>
+              </div>
             </div>
           </div>
 
@@ -212,20 +210,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       key={item.id}
                       id={`nav-item-${item.id}`}
                       onClick={() => handleSelect(item.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition-all cursor-pointer group ${
-                        isActive
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition-all cursor-pointer group ${isActive
                           ? 'bg-[#37558d] text-white font-bold shadow-xs'
                           : allowed
-                          ? 'text-[#1e3a6c] font-semibold hover:bg-[#37558d] hover:text-white hover:font-bold'
-                          : 'text-[#37558d]/70 font-medium hover:bg-[#37558d] hover:text-white hover:font-bold'
-                      }`}
+                            ? 'text-[#1e3a6c] font-semibold hover:bg-[#37558d] hover:text-white hover:font-bold'
+                            : 'text-[#37558d]/70 font-medium hover:bg-[#37558d] hover:text-white hover:font-bold'
+                        }`}
                     >
                       <span className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive 
-                            ? 'text-white' 
+                        <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive
+                            ? 'text-white'
                             : 'text-[#37558d] group-hover:text-white'
-                        }`} />
+                          }`} />
                         <span className="truncate group-hover:text-white group-hover:font-bold">{item.label}</span>
                       </span>
 
@@ -237,13 +233,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
 
                         {item.badge !== undefined && (
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold transition-colors ${
-                            item.highlight 
-                              ? 'bg-[#e8ba9d]/30 text-[#92400e] border border-[#e8ba9d] group-hover:bg-white/20 group-hover:text-white group-hover:border-white/40' 
-                              : isActive 
-                                ? 'bg-white/20 text-white border border-white/30' 
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold transition-colors ${item.highlight
+                              ? 'bg-[#e8ba9d]/30 text-[#92400e] border border-[#e8ba9d] group-hover:bg-white/20 group-hover:text-white group-hover:border-white/40'
+                              : isActive
+                                ? 'bg-white/20 text-white border border-white/30'
                                 : 'bg-white/50 text-[#1e3a6c] border border-white/60 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
-                          }`}>
+                            }`}>
                             {item.badge}
                           </span>
                         )}
@@ -256,31 +251,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </nav>
 
-        {/* Simulator Shortcut Button */}
-        {onOpenSimulatorModal && (
-          <div className="px-3 py-2 border-t border-[#37558d]/30 bg-[#7da2ca]">
-            <button
-              onClick={() => {
-                onOpenSimulatorModal();
-                onCloseMobile?.();
-              }}
-              id="btn-sidebar-open-simulator"
-              className="w-full py-2 px-3 rounded-xl bg-white/70 hover:bg-[#37558d] hover:text-white border border-white/60 text-[#37558d] text-xs font-bold hover:font-bold flex items-center justify-between transition-all group cursor-pointer shadow-2xs"
-            >
-              <span className="flex items-center gap-2">
-                <KeyRound className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white group-hover:scale-110 transition-transform" />
-                <span className="group-hover:text-white group-hover:font-bold">Simulador & Senhas</span>
-              </span>
-              <span className="text-[10px] bg-white group-hover:bg-white/20 group-hover:text-white group-hover:border-white/40 border border-slate-300 text-slate-700 px-1.5 py-0.2 rounded font-mono transition-colors">
-                RBAC
-              </span>
-            </button>
-          </div>
-        )}
-
         {/* Logged User Bar */}
         <div className="p-3 border-t border-[#37558d]/30 bg-[#7da2ca] flex items-center justify-between gap-2" id="sidebar-user-footer">
-          <div 
+          <div
             onClick={() => handleSelect('colaboradores')}
             title="Ver perfil e permissões de acesso"
             className="flex items-center gap-2.5 overflow-hidden cursor-pointer group flex-1 p-1 rounded-lg hover:bg-[#37558d] hover:text-white transition-all"
@@ -298,15 +271,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {currentUser.name}
               </p>
               <div className="flex items-center gap-1.5 truncate">
-                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
-                  currentUser.userRole === 'SUPER_ADMIN'
+                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${currentUser.userRole === 'SUPER_ADMIN'
                     ? 'bg-purple-100 text-purple-700 border border-purple-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
                     : currentUser.userRole === 'ADMINISTRATIVO'
-                    ? 'bg-sky-100 text-sky-700 border border-sky-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
-                    : currentUser.userRole === 'GESTOR'
-                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
-                    : 'bg-white/60 text-[#1e3a6c] border border-white/70 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
-                }`}>
+                      ? 'bg-sky-100 text-sky-700 border border-sky-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
+                      : currentUser.userRole === 'GESTOR'
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
+                        : 'bg-white/60 text-[#1e3a6c] border border-white/70 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30'
+                  }`}>
                   {currentUser.userRole === 'SUPER_ADMIN' ? 'SUPER ADMIN' : currentUser.userRole || 'COLABORADOR'}
                 </span>
                 <span className="text-[10px] text-[#37558d] font-bold group-hover:text-white/90 truncate font-mono">{currentUser.sector}</span>

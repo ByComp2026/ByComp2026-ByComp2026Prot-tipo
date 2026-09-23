@@ -111,11 +111,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="lg:hidden flex items-center cursor-pointer shrink-0 bg-white px-2 py-1 rounded-lg border border-white/60 shadow-2xs"
           title="Ir para Dashboard ByComp"
         >
-          <img 
-            src="/bycomp-logo.svg" 
-            alt="ByComp" 
-            className="h-5.5 max-w-[110px] w-auto object-contain" 
-          />
         </div>
 
         {/* Screen Title - Responsive for all screens */}
@@ -196,10 +191,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="role-simulator-popover"
               className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 animate-in fade-in zoom-in-95 duration-150"
             >
-              <p className="text-[11px] text-slate-500 mb-2">
-                Alterne o usuário ativo para validar as permissões de cada tela:
-              </p>
-
               <div className="space-y-1.5">
                 {[
                   {

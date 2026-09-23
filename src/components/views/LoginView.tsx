@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Lock, 
-  Mail, 
-  ArrowRight, 
-  Shield, 
-  Eye, 
-  EyeOff, 
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  Shield,
+  Eye,
+  EyeOff,
   AlertCircle
 } from 'lucide-react';
 import { Collaborator } from '../../types';
-import { 
-  USER_CREDENTIALS, 
-  convertCredentialToCollaborator 
+import {
+  USER_CREDENTIALS,
+  convertCredentialToCollaborator
 } from '../../data/authCredentials';
 import { dbService, UserDbModel } from '../../services/dbService';
 
@@ -89,31 +89,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-10 right-10 w-[450px] h-[450px] bg-[#37558d]/20 rounded-full blur-3xl pointer-events-none"></div>
 
-      {/* Top Bar */}
-      <div className="w-full max-w-6xl mx-auto flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
-          <div className="bg-white px-3 py-1.5 rounded-xl shadow-md border border-white/60">
-            <img 
-              src="/bycomp-logo.svg" 
-              alt="ByComp" 
-              className="h-8 w-auto object-contain" 
-            />
+      {/* Top Bar Centralizada */}
+      <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-center z-10 mb-5 mt-8">
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-5xl tracking-tight text-[#37558d]">ByComp</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-xl tracking-tight text-[#37558d]">ByComp</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#e8ba9d]/35 text-[#92400e] border border-[#e8ba9d]">
-                PROTÓTIPO
-              </span>
-            </div>
-            <p className="text-[11px] text-[#37558d] font-bold">Gestão Corporativa Integrada</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 border border-white/80 shadow-xs text-xs text-[#37558d]">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="font-mono text-[#37558d] font-bold">Autenticação:</span>
-          <span className="text-emerald-700 font-bold">Ativa & Segura</span>
+          <p className="text-xs text-[#37558d] font-bold mt-3">Gestão Corporativa Integrada</p>
         </div>
       </div>
 
@@ -216,13 +198,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       </div>
 
       {/* Bottom Footer */}
-      <div className="w-full max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-[#37558d] gap-2 z-10 pt-2 font-bold">
-        <div className="flex items-center gap-4">
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center text-xs text-[#37558d] gap-2 z-10 pt-2 font-bold text-center">
+        {/* Linha de cima: Copyright e o sistema */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <span className="text-[#37558d] font-bold">© 2026 ByComp Tecnologia</span>
           <span>•</span>
           <span className="text-[#37558d] font-semibold">Sistema Corporativo Integrado com Controle RBAC</span>
         </div>
-        <div className="flex items-center gap-2 font-mono text-[11px] text-[#37558d]">
+
+        {/* Linha de baixo: Matriz de Permissões Homologada (Centralizada) */}
+        <div className="flex items-center justify-center gap-1.5 font-mono text-[11px] text-[#37558d]">
           <Shield className="w-3.5 h-3.5 text-[#37558d]" />
           <span className="text-[#37558d] font-bold">Matriz de Permissões Homologada</span>
         </div>
