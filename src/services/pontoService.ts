@@ -1,4 +1,5 @@
 import { CURRENT_USER } from '../data/mockData';
+import { dbService } from './dbService';
 
 export interface PontoLocation {
   latitude: number;
@@ -44,6 +45,25 @@ class PontoService {
 
   constructor() {
     this.loadFromStorage();
+    this.syncFromFirestore();
+  }
+
+  private async syncFromFirestore() {
+    try {
+      const remoteRecords = await dbService.getPontoRecords();
+      if (remoteRecords && remoteRecords.length > 0) {
+        // Merge records by ID, prioritizing latest
+        const map = new Map<string, PontoRecord>();
+        // Add existing local
+        this.records.forEach((r) => map.set(r.id, r));
+        // Add remote
+        remoteRecords.forEach((r) => map.set(r.id, r));
+        this.records = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+        this.saveToStorage();
+      }
+    } catch (err) {
+      console.warn('Could not hydrate ponto records from Firestore:', err);
+    }
   }
 
   private loadFromStorage() {
@@ -147,6 +167,10 @@ class PontoService {
 
     this.records = [completeRecord, ...this.records];
     this.saveToStorage();
+    // Asynchronously synchronize to Firestore
+    dbService.savePontoRecord(completeRecord).catch((err) => {
+      console.warn('Could not sync punch to Firestore:', err);
+    });
     return completeRecord;
   }
 

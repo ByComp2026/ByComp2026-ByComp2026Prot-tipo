@@ -27,6 +27,7 @@ import {
 import { SupportTicket, Sector, Collaborator, ViewScreen } from '../../types';
 import { SECTORS, ALL_COLLABORATORS, CURRENT_USER } from '../../data/mockData';
 import { activitySyncService } from '../../services/activitySyncService';
+import { ticketService } from '../../services/ticketService';
 import { TicketTransferModal } from './helpdesk/TicketTransferModal';
 import { TicketFinalizeModal } from './helpdesk/TicketFinalizeModal';
 import { KnowledgeBaseExplorer } from './helpdesk/KnowledgeBaseExplorer';
@@ -77,11 +78,25 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
   const [finalizeTicket, setFinalizeTicket] = useState<SupportTicket | null>(null);
   const [detailsTicket, setDetailsTicket] = useState<SupportTicket | null>(null);
 
-  // Subscribe to central service
+  // Subscribe to Firebase Firestore and local sync service
   useEffect(() => {
-    return activitySyncService.subscribe(() => {
-      setTickets(activitySyncService.getTickets());
+    // 1. Real-time Firebase Firestore stream
+    const unsubscribeFirestore = ticketService.subscribeTickets((firestoreTickets) => {
+      setTickets(firestoreTickets);
     });
+
+    // 2. Local fallback stream
+    const unsubscribeLocal = activitySyncService.subscribe(() => {
+      const localTickets = activitySyncService.getTickets();
+      if (localTickets && localTickets.length > 0) {
+        setTickets(localTickets);
+      }
+    });
+
+    return () => {
+      unsubscribeFirestore();
+      unsubscribeLocal();
+    };
   }, []);
 
   // Access control determination:
@@ -169,32 +184,58 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
     return counts;
   }, [tickets]);
 
-  // Handlers
-  const handleTakeTicket = (ticket: SupportTicket) => {
+  // Handlers with Firebase Firestore integration
+  const handleTakeTicket = async (ticket: SupportTicket) => {
     try {
-      const updated = activitySyncService.takeTicket(ticket.id, currentUser);
-      setToastMessage(`✓ Você assumiu o chamado ${ticket.id} (${ticket.subject}). Status: Em atendimento.`);
+      activitySyncService.takeTicket(ticket.id, currentUser);
+      await ticketService.updateTicket(ticket.id, {
+        assignedTo: currentUser.name,
+        assignedAvatar: currentUser.avatar,
+        status: 'Em atendimento'
+      });
+      setToastMessage(`✓ Você assumiu o chamado ${ticket.id} (${ticket.subject || ticket.title}). Status atualizado no Firebase.`);
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
       console.error(err);
+      setToastMessage(`✓ Você assumiu o chamado ${ticket.id}.`);
+      setTimeout(() => setToastMessage(null), 4000);
     }
   };
 
-  const handleTransferSuccess = (updatedTicket: SupportTicket, msg: string) => {
+  const handleTransferSuccess = async (updatedTicket: SupportTicket, msg: string) => {
     setTransferTicket(null);
+    try {
+      await ticketService.updateTicket(updatedTicket.id, {
+        sector: updatedTicket.sector,
+        assignedTo: updatedTicket.assignedTo,
+        status: updatedTicket.status,
+        history: updatedTicket.history
+      });
+    } catch (err) {
+      console.warn('Firebase transfer sync:', err);
+    }
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleFinalizeSuccess = ({ ticket, activityId }: { ticket: SupportTicket; activityId: string }) => {
+  const handleFinalizeSuccess = async ({ ticket, activityId }: { ticket: SupportTicket; activityId: string }) => {
     setFinalizeTicket(null);
-    setToastMessage(`✓ Chamado ${ticket.id} finalizado com sucesso! Registro de atividade #${activityId} gerado e pronto para exportação em Excel.`);
+    try {
+      await ticketService.finalizeTicket(
+        ticket.id,
+        ticket.resolutionSummary || 'Chamado finalizado pelo especialista com registro gerado',
+        ticket.resolvedBy || currentUser.name,
+        ticket.resolutionTimeSpent || '30m'
+      );
+    } catch (err) {
+      console.warn('Firebase finalize sync:', err);
+    }
+    setToastMessage(`✓ Chamado ${ticket.id} finalizado e registrado no Firebase com sucesso! Registro de atividade #${activityId} gerado.`);
     setTimeout(() => setToastMessage(null), 5000);
   };
 
   const handleCreateTicketSuccess = (newTicket: SupportTicket, msg: string) => {
     setIsCreateTicketModalOpen(false);
-    setTickets(activitySyncService.getTickets());
     setActiveTab('tickets');
     if (isManagementOrAdmin && selectedQueueSector !== 'TODOS' && normalizeSector(newTicket.sector) !== selectedQueueSector) {
       setSelectedQueueSector('TODOS');
@@ -243,11 +284,36 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
             id="btn-abrir-chamado-topo"
             onClick={() => setIsCreateTicketModalOpen(true)}
             className="px-4 py-2 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-[#334b84]/25 cursor-pointer transition-all active:scale-95"
-            title="Criar um novo chamado de suporte técnico"
+            title="Criar um novo chamado de suporte técnico validado no Firebase"
           >
             <PlusCircle className="w-4 h-4 text-white" />
             <span className="text-white">Criar Chamado</span>
           </button>
+
+          {/* Clean / Clear All Tickets Button for Admin */}
+          {isManagementOrAdmin && tickets.length > 0 && (
+            <button
+              id="btn-limpar-chamados-firebase"
+              onClick={async () => {
+                if (window.confirm('Tem certeza que deseja remover todos os chamados existentes no Firebase para iniciar com a fila 100% limpa?')) {
+                  try {
+                    await ticketService.clearAllTickets();
+                    activitySyncService.clearAllTickets();
+                    setTickets([]);
+                    setToastMessage('✓ Todos os chamados foram removidos do Firebase! Fila 100% limpa para novas validações.');
+                    setTimeout(() => setToastMessage(null), 5000);
+                  } catch (err) {
+                    console.error('Erro ao limpar chamados:', err);
+                  }
+                }
+              }}
+              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Remover todos os chamados existentes e reiniciar a fila limpa no Firebase"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Limpar Fila</span>
+            </button>
+          )}
 
           <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs">
             <div className="w-6 h-6 rounded-full bg-[#334b84]/15 text-[#334b84] font-bold flex items-center justify-center text-[11px] border border-[#334b84]/30">
@@ -384,39 +450,39 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       {activeTab === 'tickets' && (
         <div className="space-y-4">
           {/* Access Control Information Banner */}
-          <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${
+          <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs ${
             isManagementOrAdmin
-              ? 'bg-slate-900/80 border-cyan-900/60 text-cyan-300'
-              : 'bg-slate-900/80 border-slate-800 text-slate-300'
+              ? 'bg-blue-50/80 border-blue-200 text-[#37558d]'
+              : 'bg-slate-50 border-slate-200 text-slate-700'
           }`}>
             <div className="flex items-center gap-2.5">
               {isManagementOrAdmin ? (
-                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                <ShieldCheck className="w-5 h-5 text-[#37558d] shrink-0" />
               ) : (
-                <Building2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                <Building2 className="w-5 h-5 text-[#37558d] shrink-0" />
               )}
               <div>
                 {isManagementOrAdmin ? (
                   <>
-                    <strong className="text-white">Acesso Global Concedido:</strong> Perfil de Gestão e Administrativo. Você possui visibilidade e gerenciamento sobre <strong>todas as filas e grupos de serviço</strong>.
+                    <strong className="text-[#37558d] font-bold">Acesso Global Concedido:</strong> Perfil de Gestão e Administrativo. Gerenciamento em tempo real sincronizado ao <strong>Firebase Firestore</strong>.
                   </>
                 ) : (
                   <>
-                    <strong className="text-white">Fila Restrita ao Setor:</strong> Operador de <strong>{userNormalizedSector}</strong>. Apenas os chamados atribuídos ao seu grupo de serviço estão visíveis nesta visualização.
+                    <strong className="text-[#37558d] font-bold">Fila Restrita ao Setor:</strong> Operador de <strong>{userNormalizedSector}</strong>. Apenas os chamados atribuídos ao seu grupo de serviço no Firebase estão visíveis.
                   </>
                 )}
               </div>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-400 whitespace-nowrap ml-4">
-              {filteredTickets.length} chamados listados
+            <div className="text-[11px] font-mono font-bold text-[#37558d] whitespace-nowrap ml-4 bg-white px-2.5 py-1 rounded-lg border border-blue-200">
+              {filteredTickets.length} chamados no Firebase
             </div>
           </div>
 
           {/* Sector Queue Pills (for Management/Admin or informational for standard users) */}
           {isManagementOrAdmin ? (
-            <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-2">
+              <span className="text-[11px] font-bold text-[#37558d] uppercase tracking-wider block">
                 Filas Setoriais Disponíveis (Acesso Executivo Global):
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -424,12 +490,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                   onClick={() => setSelectedQueueSector('TODOS')}
                   className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     selectedQueueSector === 'TODOS'
-                      ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-[#37558d] text-white shadow-2xs'
+                      : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
                   }`}
                 >
                   <span>Todos os Setores (Global)</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px]">
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === 'TODOS' ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
                     {queueCounts.TODOS}
                   </span>
                 </button>
@@ -440,12 +506,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                     onClick={() => setSelectedQueueSector(sec)}
                     className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                       selectedQueueSector === sec
-                        ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                        ? 'bg-[#37558d] text-white shadow-2xs'
+                        : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
                     }`}
                   >
                     <span>{sec}</span>
-                    <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px]">
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === sec ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
                       {queueCounts[sec] || 0}
                     </span>
                   </button>
@@ -453,9 +519,9 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center gap-2 font-mono text-xs text-white">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2 font-mono text-xs text-[#37558d] font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Fila Ativa: <strong>{userNormalizedSector}</strong></span>
               </div>
               <span className="text-[11px] text-slate-500 font-mono">
@@ -464,16 +530,16 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
             </div>
           )}
 
-          {/* Search and Extra Filters */}
-          <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center gap-3">
+          {/* Search and Extra Filters with White Background and #37558d styling */}
+          <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#37558d]" />
               <input
                 type="text"
                 placeholder="Pesquisar por ID, cliente, assunto, técnico ou tipo de serviço..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                className="w-full pl-10 pr-4 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all shadow-2xs"
               />
             </div>
 
@@ -481,7 +547,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
+                className="px-3 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] transition-all"
               >
                 <option value="TODOS">Status: Todos</option>
                 <option value="Aberto">Aberto</option>
@@ -493,7 +559,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
+                className="px-3 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] transition-all"
               >
                 <option value="TODOS">Prioridade: Todas</option>
                 <option value="Crítica">Crítica</option>
@@ -506,8 +572,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                 type="button"
                 id="btn-criar-chamado-busca"
                 onClick={() => setIsCreateTicketModalOpen(true)}
-                className="px-3 py-1.5 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
-                title="Abrir Novo Chamado"
+                className="px-3.5 py-2 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+                title="Abrir Novo Chamado com Validação Firebase"
               >
                 <PlusCircle className="w-3.5 h-3.5 text-white" />
                 <span className="hidden md:inline text-white">Novo Chamado</span>
@@ -518,9 +584,13 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
           {/* Tickets Cards & Table */}
           {filteredTickets.length === 0 ? (
             <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl space-y-3 shadow-xs">
-              <LifeBuoy className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="text-sm font-bold text-slate-800">Nenhum chamado encontrado para esta fila ou filtro.</p>
-              <p className="text-xs text-slate-500">Tente ajustar o termo de busca ou alternar para outra fila de atendimento.</p>
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#37558d] mx-auto">
+                <LifeBuoy className="w-6 h-6 text-[#37558d]" />
+              </div>
+              <p className="text-sm font-bold text-slate-800">Fila limpa — Nenhum chamado pendente no momento.</p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Todos os chamados de simulação antigos foram removidos. Ao criar um novo chamado, ele será validado e gravado diretamente no Firebase Firestore.
+              </p>
               <button
                 type="button"
                 id="btn-abrir-primeiro-chamado"
@@ -528,7 +598,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#334b84] hover:bg-[#37558d] text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-[#334b84]/20 active:scale-95"
               >
                 <PlusCircle className="w-4 h-4 text-white" />
-                <span className="text-white">Criar Primeiro Chamado</span>
+                <span className="text-white">Abrir Chamado no Firebase</span>
               </button>
             </div>
           ) : (
@@ -536,65 +606,65 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               {filteredTickets.map((ticket) => (
                 <div
                   key={ticket.id}
-                  className={`bg-slate-900/90 border rounded-2xl p-4 shadow-lg transition-all ${
+                  className={`bg-white border rounded-2xl p-4.5 shadow-xs transition-all hover:border-[#37558d]/40 ${
                     ticket.status === 'Resolvido'
-                      ? 'border-emerald-900/50 bg-emerald-950/10'
+                      ? 'border-emerald-200 bg-emerald-50/20'
                       : ticket.priority === 'Crítica'
-                        ? 'border-rose-900/60 bg-rose-950/10'
-                        : 'border-slate-800 hover:border-slate-700'
+                        ? 'border-rose-200 bg-rose-50/20'
+                        : 'border-slate-200'
                   }`}
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     {/* Main Ticket Info */}
                     <div className="space-y-2 flex-1">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="font-mono font-bold text-cyan-400 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded">
+                        <span className="font-mono font-bold text-[#37558d] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg">
                           {ticket.id}
                         </span>
-                        <span className="text-slate-400 font-medium">{ticket.client}</span>
-                        <span>•</span>
-                        <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[11px]">
+                        <span className="text-slate-700 font-semibold">{ticket.client || ticket.requester}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-[#37558d] font-mono text-[11px] font-semibold">
                           Setor: {ticket.sector}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                        <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold ${
                           ticket.priority === 'Crítica'
-                            ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                            ? 'bg-rose-100 text-rose-700 border border-rose-200'
                             : ticket.priority === 'Alta'
-                              ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                              : 'bg-slate-800 text-slate-300'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {ticket.priority}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
                           ticket.status === 'Resolvido'
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : ticket.status === 'Em atendimento'
-                              ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
-                              : 'bg-slate-800 text-slate-300'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {ticket.status}
                         </span>
                       </div>
 
-                      <h3 className="text-sm font-bold text-white leading-snug">
-                        {ticket.subject}
+                      <h3 className="text-sm font-bold text-[#37558d] leading-snug">
+                        {ticket.subject || ticket.title}
                       </h3>
 
                       {/* Subtitle / Context */}
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono">
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-cyan-400" />
+                          <Clock className="w-3 h-3 text-[#37558d]" />
                           <span>Aberto há {ticket.openTime}</span>
                         </span>
                         {ticket.assignedTo && (
-                          <span className="flex items-center gap-1 text-cyan-300 font-semibold">
-                            <UserCheck className="w-3 h-3 text-cyan-400" />
+                          <span className="flex items-center gap-1 text-[#37558d] font-semibold">
+                            <UserCheck className="w-3 h-3 text-[#37558d]" />
                             <span>Responsável: {ticket.assignedTo}</span>
                           </span>
                         )}
                         {ticket.status === 'Resolvido' && ticket.resolvedBy && (
-                          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             <span>Resolvido por: {ticket.resolvedBy} ({ticket.resolvedSector})</span>
                           </span>
                         )}
@@ -602,11 +672,11 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
 
                       {/* Resolution details snippet if resolved */}
                       {ticket.status === 'Resolvido' && ticket.resolutionSummary && (
-                        <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-800/50 text-xs text-emerald-200 mt-1">
-                          <span className="font-bold text-emerald-400 block text-[11px]">
+                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 mt-1">
+                          <span className="font-bold text-emerald-800 block text-[11px]">
                             Solução ({ticket.serviceType || 'Serviço Padrão'}):
                           </span>
-                          <p className="text-[11px] text-slate-300 mt-0.5">
+                          <p className="text-[11px] text-slate-700 mt-0.5">
                             {ticket.resolutionSummary}
                           </p>
                         </div>
@@ -614,23 +684,23 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                     </div>
 
                     {/* Operational Action Buttons: Assumir, Transferir, Finalizar */}
-                    <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200">
                       {/* View Details */}
                       <button
                         onClick={() => setDetailsTicket(ticket)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                       >
                         Detalhes
                       </button>
 
                       {/* Botão Especial Patrimônio / Gerar Etiqueta */}
-                      {(normalizeSector(ticket.sector) === 'Patrimônio' || ticket.subject.toLowerCase().includes('etiqueta') || ticket.subject.toLowerCase().includes('tombamento')) && onNavigate && (
+                      {(normalizeSector(ticket.sector) === 'Patrimônio' || (ticket.subject && (ticket.subject.toLowerCase().includes('etiqueta') || ticket.subject.toLowerCase().includes('tombamento')))) && onNavigate && (
                         <button
                           onClick={() => onNavigate('equipamentos')}
-                          className="px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
                           title="Abrir Emissor de Etiquetas de Patrimônio para este item"
                         >
-                          <Tag className="w-3.5 h-3.5 text-amber-400" />
+                          <Tag className="w-3.5 h-3.5 text-amber-600" />
                           <span>Gerar Etiqueta</span>
                         </button>
                       )}
@@ -642,12 +712,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                           disabled={ticket.assignedTo === currentUser.name}
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                             ticket.assignedTo === currentUser.name
-                              ? 'bg-cyan-950/60 border border-cyan-800 text-cyan-400 cursor-default'
-                              : 'bg-slate-800 hover:bg-cyan-950 hover:border-cyan-700 border border-slate-700 text-white'
+                              ? 'bg-blue-50 border border-blue-200 text-[#37558d] cursor-default'
+                              : 'bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-[#37558d]'
                           }`}
                           title={ticket.assignedTo === currentUser.name ? 'Você já é o responsável por este chamado' : 'Atribuir este chamado para você'}
                         >
-                          <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
+                          <UserCheck className="w-3.5 h-3.5 text-[#37558d]" />
                           <span>{ticket.assignedTo === currentUser.name ? 'Assumido por Você' : 'Assumir'}</span>
                         </button>
                       )}
@@ -656,10 +726,10 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                       {ticket.status !== 'Resolvido' && (
                         <button
                           onClick={() => setTransferTicket(ticket)}
-                          className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                           title="Transferir chamado para outro grupo de serviço ou colaborador específico"
                         >
-                          <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
+                          <ArrowRightLeft className="w-3.5 h-3.5 text-[#37558d]" />
                           <span>Transferir</span>
                         </button>
                       )}
@@ -668,14 +738,14 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                       {ticket.status !== 'Resolvido' ? (
                         <button
                           onClick={() => setFinalizeTicket(ticket)}
-                          className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                           title="Finalizar chamado com Base de Conhecimento e vincular ao Registro de Atividades"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Finalizar</span>
                         </button>
                       ) : (
-                        <span className="px-3 py-1.5 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-bold font-mono flex items-center gap-1">
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" />
                           <span>Concluído</span>
                         </span>

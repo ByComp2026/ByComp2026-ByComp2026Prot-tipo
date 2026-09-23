@@ -31,22 +31,23 @@ import { AuditLogView } from './components/views/AuditLogView';
 import { VisionOverviewView } from './components/views/VisionOverviewView';
 import { DesignSystemNavMapView } from './components/views/DesignSystemNavMapView';
 import { OrganogramaView } from './components/views/OrganogramaView';
+import { SettingsView } from './components/views/SettingsView';
 import { RoleSimulatorModal } from './components/RoleSimulatorModal';
 import { checkScreenAccess } from './data/authCredentials';
 import { Presentation, BookOpen, ChevronRight, ChevronLeft, ShieldAlert, Lock, Crown, Key, Sparkles, Shield } from 'lucide-react';
 
 const HIERARCHY_PERSONAS: Record<UserRole, Collaborator> = {
   SUPER_ADMIN: {
-    id: 'user-victor',
-    name: 'Victor Estevão',
-    role: 'Tech Lead / Super Admin',
+    id: 'user-victor-master',
+    name: 'Victor (Master Admin)',
+    role: 'Tech Lead / Super Admin Master',
     sector: 'DESENVOLVIMENTO',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    email: 'victor.estevao@bycomp.com.br',
-    phone: '(11) 99871-0001',
+    email: 'victormorekids@gmail.com',
+    phone: '(11) 98765-4321',
     admissionDate: '2021-01-10',
     status: 'Em atividade',
-    currentTask: 'Supervisão Geral do Sistema & Arquitetura',
+    currentTask: 'Governança Master e Arquitetura do Sistema',
     userRole: 'SUPER_ADMIN',
     area: 'DESENVOLVIMENTO'
   },
@@ -95,7 +96,7 @@ const HIERARCHY_PERSONAS: Record<UserRole, Collaborator> = {
 };
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ViewScreen>('dashboard');
+  const [currentScreen, setCurrentScreen] = useState<ViewScreen>('login');
   const [currentUser, setCurrentUser] = useState<Collaborator>(HIERARCHY_PERSONAS.SUPER_ADMIN);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNavModalOpen, setIsNavModalOpen] = useState(false);
@@ -352,6 +353,13 @@ export default function App() {
             onSwitchUser={setCurrentUser}
           />
         );
+      case 'configuracoes':
+        return (
+          <SettingsView
+            currentUser={currentUser}
+            onUpdateCurrentUser={setCurrentUser}
+          />
+        );
       default:
         return <DashboardView onNavigate={setCurrentScreen} />;
     }
@@ -360,39 +368,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-[#8ad0da]/40 selection:text-[#121a2d] antialiased">
       {currentScreen === 'login' ? (
-        // Login View has its own self-contained corporate visual framing
-        <div className="relative min-h-screen flex flex-col">
-          {/* Subtle top banner during login to jump directly to other screens if presenter desires */}
-          <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between text-xs text-slate-600 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#8ad0da]"></span>
-              <span className="font-mono text-[#334b84] font-semibold">ByComp Protótipo</span>
-              <span className="hidden sm:inline text-slate-500">• Tela 1 de 22</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsGuideModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-slate-200"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#334b84]" />
-                <span>Guia do Apresentador</span>
-              </button>
-
-              <button
-                onClick={() => setIsNavModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-[#334b84] hover:bg-[#37558d] text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm"
-              >
-                <Presentation className="w-3.5 h-3.5 text-[#8ad0da]" />
-                <span className="text-white">Pular para qualquer tela</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 flex items-center justify-center">
-            {renderActiveScreen()}
-          </div>
-        </div>
+        renderActiveScreen()
       ) : (
         // Standard Corporate Master Layout for Screens 2 to 22
         <div className="flex h-screen overflow-hidden relative">

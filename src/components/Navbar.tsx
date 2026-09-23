@@ -10,7 +10,8 @@ import {
   Users,
   ChevronDown,
   Key,
-  Menu
+  Menu,
+  Settings
 } from 'lucide-react';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
@@ -195,15 +196,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="role-simulator-popover"
               className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 animate-in fade-in zoom-in-95 duration-150"
             >
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-2">
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-[#334b84]" />
-                  Simulador de Papel & Senhas
-                </span>
-                <span className="text-[10px] text-[#334b84] bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono font-semibold">
-                  4 Níveis RBAC
-                </span>
-              </div>
               <p className="text-[11px] text-slate-500 mb-2">
                 Alterne o usuário ativo para validar as permissões de cada tela:
               </p>
@@ -391,6 +383,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
         </div>
+
+        {/* Settings & Profile Button */}
+        <button
+          onClick={() => onSelectScreen('configuracoes')}
+          id="btn-navbar-settings"
+          className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-white/70 hover:bg-[#37558d] hover:text-white border border-white/60 text-[#1e3a6c] transition-all shadow-2xs active:scale-95 cursor-pointer group"
+          title="Abrir Configurações do Sistema e Perfil Master"
+        >
+          <img
+            src={currentUser.avatar}
+            alt={currentUser.name}
+            className="w-6 h-6 rounded-lg object-cover ring-1 ring-[#37558d]/30"
+          />
+          <div className="hidden xl:flex flex-col text-left">
+            <span className="text-[11px] font-black leading-tight group-hover:text-white transition-colors truncate max-w-[110px]">
+              {currentUser.name}
+            </span>
+            <span className="text-[9px] text-[#37558d] group-hover:text-white/80 font-mono font-semibold truncate">
+              Configurações
+            </span>
+          </div>
+          <Settings className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white transition-colors" />
+        </button>
       </div>
     </header>
   );

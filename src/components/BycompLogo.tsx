@@ -13,96 +13,104 @@ export const BycompLogo: React.FC<BycompLogoProps> = ({
 }) => {
   return (
     <svg
-      viewBox="0 0 410 102"
+      viewBox="0 0 350 102"
       className={className}
       style={height ? { height } : undefined}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="ByComp - enable the future"
     >
+      <defs>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;900&display=swap');
+          .bycomp-font {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+          }
+        `}</style>
+      </defs>
+
       {showTagline && (
         <text
-          x="195"
+          x="135"
           y="21"
-          fill="#8e92be"
-          fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           fontSize="18.5"
           fontWeight="300"
+          fill="#8e92be"
           letterSpacing="0.05em"
+          className="bycomp-font"
         >
           enable the future
         </text>
       )}
 
-      {/* Wordmark: All letters tightly joined "ByComp" */}
-      {/* B */}
+      {/* C — renderizado primeiro no DOM para ficar atrás do y */}
       <text
-        x="4"
+        x="92"
         y="88"
-        fill="#5c7cb8"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         fontSize="88"
         fontWeight="900"
-      >
-        B
-      </text>
-
-      {/* C */}
-      <text
-        x="98"
-        y="88"
         fill="#2eb4be"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-        fontSize="88"
-        fontWeight="900"
+        className="bycomp-font"
       >
         C
       </text>
 
-      {/* y */}
+      {/* B */}
       <text
-        x="50"
+        x="4"
         y="88"
-        fill="#223c6f"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         fontSize="88"
         fontWeight="900"
+        fill="#5c7cb8"
+        className="bycomp-font"
+      >
+        B
+      </text>
+
+      {/* y — sobrepõe B e C */}
+      <text
+        x="48"
+        y="88"
+        fontSize="88"
+        fontWeight="900"
+        fill="#223c6f"
+        className="bycomp-font"
       >
         y
       </text>
 
-      {/* o */}
+      {/* o — encaixado no C */}
       <text
-        x="154"
+        x="146"
         y="88"
-        fill="#f57f20"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         fontSize="88"
         fontWeight="900"
+        fill="#f57f20"
+        className="bycomp-font"
       >
         o
       </text>
 
-      {/* m */}
+      {/* m — colado no o */}
       <text
-        x="222"
+        x="196"
         y="88"
-        fill="#5c7cb8"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         fontSize="88"
         fontWeight="900"
+        fill="#5c7cb8"
+        className="bycomp-font"
       >
         m
       </text>
 
-      {/* p */}
+      {/* p — colado no m */}
       <text
-        x="324"
+        x="272"
         y="88"
-        fill="#9bb7cc"
-        fontFamily="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         fontSize="88"
         fontWeight="900"
+        fill="#9bb7cc"
+        className="bycomp-font"
       >
         p
       </text>

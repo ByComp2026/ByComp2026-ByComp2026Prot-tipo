@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileSpreadsheet,
   Search,
@@ -12,14 +12,25 @@ import {
   Layers,
   User,
   SlidersHorizontal,
-  FileCheck
+  FileCheck,
+  Plus,
+  Database,
+  X
 } from 'lucide-react';
-import { SMART_SPREADSHEET_DATA, SECTORS } from '../../data/mockData';
-import { ActivityRecord, Priority, Sector } from '../../types';
+import { SMART_SPREADSHEET_DATA, SECTORS, CURRENT_USER } from '../../data/mockData';
+import { ActivityRecord, Priority, Sector, Collaborator } from '../../types';
 import { exportActivitiesToExcel } from '../../utils/excelExport';
+import { taskService } from '../../services/taskService';
 
-export const SmartSpreadsheetView: React.FC = () => {
-  const [data, setData] = useState<ActivityRecord[]>(SMART_SPREADSHEET_DATA);
+interface SmartSpreadsheetViewProps {
+  currentUser?: Collaborator;
+}
+
+export const SmartSpreadsheetView: React.FC<SmartSpreadsheetViewProps> = ({
+  currentUser = CURRENT_USER
+}) => {
+  const [data, setData] = useState<ActivityRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterSector, setFilterSector] = useState<string>('TODOS');
   const [filterCollaborator, setFilterCollaborator] = useState<string>('TODOS');
@@ -32,12 +43,64 @@ export const SmartSpreadsheetView: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
 
+  // New activity modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newCollaborator, setNewCollaborator] = useState(currentUser.name);
+  const [newSector, setNewSector] = useState<Sector>((currentUser.sector as Sector) || 'Suporte N2');
+  const [newPriority, setNewPriority] = useState<Priority>('Média');
+  const [newTimeSpent, setNewTimeSpent] = useState('1h 30m');
+  const [newObservation, setNewObservation] = useState('');
+  const [feedback, setFeedback] = useState<string | null>(null);
+
   const itemsPerPage = 7;
+
+  // Real-time subscription to Firebase Firestore activities
+  useEffect(() => {
+    const unsubscribe = taskService.subscribeActivities((activities) => {
+      setData(activities);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Collaborator unique list
   const collaboratorsList = useMemo(() => {
-    return Array.from(new Set(SMART_SPREADSHEET_DATA.map(d => d.collaborator)));
-  }, []);
+    const list = new Set(data.map(d => d.collaborator));
+    list.add(currentUser.name);
+    return Array.from(list);
+  }, [data, currentUser]);
+
+  const handleCreateActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    try {
+      const now = new Date();
+      const newAct = await taskService.createActivity({
+        date: now.toLocaleDateString('pt-BR'),
+        time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        collaborator: newCollaborator || currentUser.name,
+        sector: newSector,
+        activity: newTitle.trim(),
+        priority: newPriority,
+        status: 'Concluído',
+        timeSpent: newTimeSpent.trim() || '1h 00m',
+        observation: newObservation.trim() || 'Atividade registrada via planilha inteligente',
+        attachment: ''
+      });
+
+      setData(prev => [newAct, ...prev]);
+      setIsModalOpen(false);
+      setNewTitle('');
+      setNewObservation('');
+      setFeedback('✓ Atividade gravada com sucesso no Firebase Firestore!');
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      console.error('Erro ao salvar atividade:', err);
+    }
+  };
 
   // Filtered & Sorted Data
   const filteredData = useMemo(() => {
@@ -113,13 +176,28 @@ export const SmartSpreadsheetView: React.FC = () => {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Base de Atividades</h1>
-              <p className="text-xs text-slate-400">Planilha inteligente com filtros avançados, ordenação e auditoria</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-white tracking-tight">Base de Atividades</h1>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <Database className="w-3 h-3" />
+                  Firebase Firestore 100%
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">Planilha inteligente com filtros avançados, ordenação e auditoria sincronizada no Firestore</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            id="btn-apontar-atividade"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Apontar Atividade</span>
+          </button>
+
           <button
             onClick={resetFilters}
             className="px-3 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
@@ -142,6 +220,14 @@ export const SmartSpreadsheetView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className="p-3.5 rounded-xl bg-cyan-950/80 border border-cyan-500 text-cyan-200 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+          <span>{feedback}</span>
+        </div>
+      )}
 
       {/* Export Confirmation Toast Banner */}
       {exportNotice && (
@@ -385,6 +471,132 @@ export const SmartSpreadsheetView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal: + Apontar Atividade no Firebase */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-emerald-400" />
+                Apontar Atividade no Firebase Firestore
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateActivity} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Descrição da Atividade Executada
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Resolução de lentidão em cluster de banco e deploy de hotfix"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Colaborador
+                  </label>
+                  <input
+                    type="text"
+                    value={newCollaborator}
+                    onChange={(e) => setNewCollaborator(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Setor
+                  </label>
+                  <select
+                    value={newSector}
+                    onChange={(e) => setNewSector(e.target.value as Sector)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    {SECTORS.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Prioridade
+                  </label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as Priority)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  >
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Urgente">Urgente</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tempo Gasto
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 01h 30m"
+                    value={newTimeSpent}
+                    onChange={(e) => setNewTimeSpent(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Observações Técnicas / Resolução
+                </label>
+                <textarea
+                  placeholder="Detalhamento técnico da resolução aplicada..."
+                  value={newObservation}
+                  onChange={(e) => setNewObservation(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 font-medium cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 cursor-pointer"
+                >
+                  Gravar no Firebase
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

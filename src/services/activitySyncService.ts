@@ -25,28 +25,13 @@ class ActivitySyncService {
   }
 
   private initData() {
-    // 1. Tickets
+    // 1. Tickets: Clean queue - all mock tickets removed as requested by user.
+    // Tickets are now created and validated directly in Firebase Firestore.
     try {
-      const storedTickets = localStorage.getItem(STORAGE_KEYS.TICKETS);
-      if (storedTickets) {
-        this.tickets = JSON.parse(storedTickets);
-      } else {
-        this.tickets = [...TICKETS_DATA].map(t => ({
-          ...t,
-          assignedTo: t.status === 'Em atendimento' ? 'Victor Estevão' : undefined,
-          history: [
-            {
-              timestamp: '16/09/2026 08:30',
-              action: 'Chamado aberto no sistema',
-              user: 'Sistema Help Desk',
-              details: `Triagem automática inicial com SLA de ${t.openTime}.`
-            }
-          ]
-        }));
-        this.saveTickets();
-      }
+      localStorage.removeItem(STORAGE_KEYS.TICKETS);
+      this.tickets = [];
     } catch {
-      this.tickets = [...TICKETS_DATA];
+      this.tickets = [];
     }
 
     // 2. Activities (Base de Atividades / Smart Spreadsheet)
@@ -141,6 +126,27 @@ class ActivitySyncService {
   // --- TICKETS API ---
   public getTickets(): SupportTicket[] {
     return [...this.tickets];
+  }
+
+  public addTicket(ticket: SupportTicket): void {
+    const existingIndex = this.tickets.findIndex(t => t.id === ticket.id);
+    if (existingIndex >= 0) {
+      this.tickets[existingIndex] = ticket;
+    } else {
+      this.tickets.unshift(ticket);
+    }
+    this.saveTickets();
+    this.notify();
+  }
+
+  public clearAllTickets(): void {
+    this.tickets = [];
+    try {
+      localStorage.removeItem(STORAGE_KEYS.TICKETS);
+    } catch {
+      // ignore
+    }
+    this.notify();
   }
 
   public createTicket(params: {

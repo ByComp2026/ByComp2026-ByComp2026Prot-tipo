@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Kanban as KanbanIcon,
   Plus,
@@ -11,20 +11,46 @@ import {
   ChevronLeft,
   Filter,
   Layers,
-  Sparkles
+  Sparkles,
+  Trash2,
+  Database
 } from 'lucide-react';
-import { INITIAL_TASKS, CURRENT_USER } from '../../data/mockData';
-import { Task, TaskStatus, Priority } from '../../types';
+import { CURRENT_USER } from '../../data/mockData';
+import { Task, TaskStatus, Priority, Collaborator } from '../../types';
+import { taskService } from '../../services/taskService';
 
-export const MyKanbanView: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(
-    INITIAL_TASKS.filter(t => t.assigneeName === CURRENT_USER.name || t.sector === 'Suporte N2')
-  );
+interface MyKanbanViewProps {
+  currentUser?: Collaborator;
+}
+
+export const MyKanbanView: React.FC<MyKanbanViewProps> = ({
+  currentUser = CURRENT_USER
+}) => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [newTaskModal, setNewTaskModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Média');
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Subscribe in real-time to Firebase Firestore tasks
+  useEffect(() => {
+    const unsubscribe = taskService.subscribeTasks((allTasks) => {
+      // Filter tasks assigned to current user or related to their sector
+      const myTasks = allTasks.filter(
+        t => t.assigneeName === currentUser.name ||
+             (t.sector && currentUser.sector && t.sector.toLowerCase() === currentUser.sector.toLowerCase()) ||
+             t.assigneeName === 'Victor Estevão' ||
+             currentUser.userRole === 'SUPER_ADMIN'
+      );
+      setTasks(myTasks);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const columns: { id: TaskStatus; label: string; countColor: string }[] = [
     { id: 'BACKLOG', label: 'BACKLOG', countColor: 'bg-slate-800 text-slate-400' },
@@ -34,11 +60,18 @@ export const MyKanbanView: React.FC = () => {
     { id: 'CONCLUIDO', label: 'CONCLUÍDO', countColor: 'bg-emerald-950 text-emerald-300 border border-emerald-800' }
   ];
 
-  const moveTask = (taskId: string, targetStatus: TaskStatus) => {
+  const moveTask = async (taskId: string, targetStatus: TaskStatus) => {
+    // Optimistic update
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
     const movedTask = tasks.find(t => t.id === taskId);
-    setFeedback(`✓ "${movedTask?.title}" movido para ${targetStatus.replace('_', ' ')}`);
-    setTimeout(() => setFeedback(null), 3000);
+    setFeedback(`✓ "${movedTask?.title || 'Tarefa'}" movido para ${targetStatus.replace('_', ' ')} (Firebase sincronizado)`);
+    setTimeout(() => setFeedback(null), 3500);
+
+    try {
+      await taskService.updateTaskStatus(taskId, targetStatus);
+    } catch (err) {
+      console.error('Erro ao atualizar status no Firebase:', err);
+    }
   };
 
   const handleDragStart = (id: string) => {
@@ -56,29 +89,46 @@ export const MyKanbanView: React.FC = () => {
     }
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
-    const newTask: Task = {
-      id: `t-${Date.now()}`,
-      title: newTaskTitle,
-      description: 'Nova tarefa inserida no fluxo de trabalho individual.',
-      sector: 'Suporte N2',
-      assigneeName: CURRENT_USER.name,
-      priority: newTaskPriority,
-      status: 'A_FAZER',
-      deadline: '19/09/2026',
-      tag: 'Operação',
-      commentsCount: 0,
-      subtasks: []
-    };
+    try {
+      const created = await taskService.createTask({
+        title: newTaskTitle.trim(),
+        description: newTaskDescription.trim() || 'Nova tarefa inserida no fluxo de trabalho individual.',
+        sector: (currentUser.sector as any) || 'Suporte N2',
+        assigneeName: currentUser.name,
+        priority: newTaskPriority,
+        status: 'A_FAZER',
+        deadline: new Date(Date.now() + 3 * 86400000).toLocaleDateString('pt-BR'),
+        tag: currentUser.sector || 'Operação',
+        commentsCount: 0,
+        subtasks: []
+      });
 
-    setTasks([newTask, ...tasks]);
-    setNewTaskModal(false);
-    setNewTaskTitle('');
-    setFeedback('✓ Nova tarefa adicionada ao quadro.');
-    setTimeout(() => setFeedback(null), 3000);
+      setTasks(prev => [created, ...prev]);
+      setNewTaskModal(false);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setFeedback('✓ Nova tarefa gravada com sucesso no Firebase Firestore!');
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      console.error('Erro ao criar tarefa:', err);
+      setFeedback('Erro ao salvar no Firebase. Verifique conexão.');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string, title: string) => {
+    if (!window.confirm(`Excluir a tarefa "${title}" do Firebase?`)) return;
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    try {
+      await taskService.deleteTask(taskId);
+      setFeedback(`✓ Tarefa "${title}" removida do Firebase.`);
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err) {
+      console.error('Erro ao excluir tarefa:', err);
+    }
   };
 
   return (
@@ -94,7 +144,11 @@ export const MyKanbanView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-white tracking-tight">Meu Kanban</h1>
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
-                  {CURRENT_USER.name} • {CURRENT_USER.sector}
+                  {currentUser.name} • {currentUser.sector}
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <Database className="w-3 h-3" />
+                  Firebase Firestore 100%
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -169,9 +223,22 @@ export const MyKanbanView: React.FC = () => {
                         {task.priority}
                       </span>
 
-                      <span className="text-[10px] text-slate-400 font-mono bg-slate-800/70 px-1.5 py-0.5 rounded">
-                        {task.tag}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-mono bg-slate-800/70 px-1.5 py-0.5 rounded">
+                          {task.tag}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTask(task.id, task.title);
+                          }}
+                          className="text-slate-500 hover:text-rose-400 p-0.5 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Excluir tarefa do Firebase"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Task Title */}

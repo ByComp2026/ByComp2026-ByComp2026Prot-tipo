@@ -10,22 +10,15 @@ import {
   Activity,
   TrendingUp,
   Clock,
-  ArrowUpRight,
   AlertTriangle,
   CheckCircle2,
-  Play,
   ArrowRight,
-  RefreshCw,
-  Sparkles,
-  Kanban,
   ShieldCheck,
   Calendar,
   Layers,
   Database,
   Shield,
-  FileSpreadsheet,
   Briefcase,
-  SlidersHorizontal,
   Flame,
   Network
 } from 'lucide-react';
@@ -46,7 +39,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const [dashboardMode, setDashboardMode] = useState<'operacional' | 'executivo'>('operacional');
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
-  // General KPIs
   const operationalKPIs = [
     {
       id: 'kpi-colabs',
@@ -54,7 +46,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '37',
       label: '4 ausentes • 7 intervalo (48 total)',
       icon: Users,
-      color: 'from-blue-500/20 to-cyan-500/10 border-blue-500/30 text-cyan-400',
       action: 'colaboradores' as ViewScreen
     },
     {
@@ -63,7 +54,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '126',
       label: '18 pendentes • 3 atrasadas • 58 feitas',
       icon: CheckSquare,
-      color: 'from-indigo-500/20 to-blue-500/10 border-indigo-500/30 text-indigo-400',
       action: 'meu_kanban' as ViewScreen
     },
     {
@@ -72,7 +62,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '32',
       label: '14 abertas • 12 andamento • 6 resolvidas',
       icon: PhoneCall,
-      color: 'from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-400',
       action: 'chamados' as ViewScreen
     },
     {
@@ -81,7 +70,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '44',
       label: 'Presentes hoje • 3 atrasos • 5 HE',
       icon: Clock,
-      color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
       action: 'registro_ponto' as ViewScreen
     },
     {
@@ -90,7 +78,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '296h',
       label: 'Atividades registradas na semana',
       icon: Activity,
-      color: 'from-teal-500/20 to-emerald-500/10 border-teal-500/30 text-teal-400',
       action: 'planilhas' as ViewScreen
     },
     {
@@ -99,12 +86,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       value: '93.2%',
       label: 'SLA consolidado da TI ByComp',
       icon: TrendingUp,
-      color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-400',
       action: 'relatorios' as ViewScreen
     }
   ];
 
-  // Executive Pillars (Requirement 28: Dashboard Executivo para Gestores)
   const executivePillars = [
     {
       id: 'exec-empresa',
@@ -114,7 +99,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: '4 Ausentes • 7 em Intervalo • 100% dos 7 setores operando',
       icon: Users,
       badge: 'Normal',
-      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       action: 'colaboradores' as ViewScreen
     },
     {
@@ -125,7 +110,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: 'SLA médio consolidado em 97.4% • 0 chamados críticos sem técnico',
       icon: PhoneCall,
       badge: '97.4% SLA',
-      badgeColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
+      badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-300',
       action: 'chamados' as ViewScreen
     },
     {
@@ -136,7 +121,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: '18 Pendências • 3 Atrasadas leves • Ciclo médio 1.8 dias',
       icon: CheckSquare,
       badge: 'Alta Performance',
-      badgeColor: 'bg-indigo-950 text-indigo-300 border-indigo-800',
+      badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
       action: 'meu_kanban' as ViewScreen
     },
     {
@@ -147,7 +132,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: '44 Presentes • 3 Atrasos justificados • 5 Horas Extras autorizadas',
       icon: Clock,
       badge: 'Auditado',
-      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       action: 'espelho_ponto' as ViewScreen
     },
     {
@@ -158,7 +143,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: 'Portal ByComp, Core API v2, Mobile App e Mensageria Kafka',
       icon: Layers,
       badge: 'Sprint 14',
-      badgeColor: 'bg-blue-950 text-blue-300 border-blue-800',
+      badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
       action: 'kanban_equipe' as ViewScreen
     },
     {
@@ -169,7 +154,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: 'Firewalls e VPNs 100% estáveis • 2 avisos de latência BGP tratados',
       icon: Shield,
       badge: 'SOC Ativo',
-      badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       action: 'auditoria' as ViewScreen
     },
     {
@@ -180,7 +165,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: 'Replicação MongoDB OK • Particionamento executado • Backup 100%',
       icon: Database,
       badge: 'Saudável',
-      badgeColor: 'bg-teal-950 text-teal-300 border-teal-800',
+      badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
       action: 'planilhas' as ViewScreen
     },
     {
@@ -191,60 +176,58 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       subtext: '2 Formulários de reembolso e 1 solicitação de insumo pendente',
       icon: Briefcase,
       badge: 'RH / Financeiro',
-      badgeColor: 'bg-amber-950 text-amber-300 border-amber-800',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
       action: 'formularios' as ViewScreen
     }
   ];
 
   const totalTasks = TASK_STATUS_BREAKDOWN.reduce((acc, curr) => acc + curr.count, 0);
 
-  // Breakdown of electronic time clock for today
   const timeClockStats = [
-    { label: 'Presentes', count: 44, icon: UserCheck, color: 'text-emerald-400 bg-emerald-950/60 border-emerald-800' },
-    { label: 'Ausentes', count: 4, icon: UserX, color: 'text-slate-400 bg-slate-900 border-slate-800' },
-    { label: 'Atrasados', count: 3, icon: AlertCircle, color: 'text-amber-400 bg-amber-950/60 border-amber-800' },
-    { label: 'Em Intervalo', count: 7, icon: Coffee, color: 'text-cyan-400 bg-cyan-950/60 border-cyan-800' },
-    { label: 'Hora Extra', count: 5, icon: Flame, color: 'text-rose-400 bg-rose-950/60 border-rose-800' }
+    { label: 'Presentes', count: 44, icon: UserCheck, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    { label: 'Ausentes', count: 4, icon: UserX, color: 'text-slate-700 bg-slate-100 border-slate-300' },
+    { label: 'Atrasados', count: 3, icon: AlertCircle, color: 'text-amber-700 bg-amber-50 border-amber-200' },
+    { label: 'Em Intervalo', count: 7, icon: Coffee, color: 'text-cyan-700 bg-cyan-50 border-cyan-200' },
+    { label: 'Hora Extra', count: 5, icon: Flame, color: 'text-rose-700 bg-rose-50 border-rose-200' }
   ];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300" id="main-dashboard-container">
-      {/* Welcome Header & View Mode Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white/95 p-6 rounded-3xl border border-slate-200 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-[#37558d] tracking-tight">
               ByComp — Gestão Integrada
             </h1>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#37558d] text-white">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#7da2ca]/20 text-[#37558d] border border-[#7da2ca]/40">
               100% Monitorada
             </span>
           </div>
-          <p className="text-sm text-[#37558d]/85 font-medium mt-1">
+          <p className="text-sm text-slate-600 font-medium mt-1">
             Painel unificado conectando Administração, Suporte, Desenvolvimento, Dados e Segurança.
           </p>
         </div>
 
-        {/* Mode Toggle & Navigation */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Dashboard Mode Selector */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
+          <div className="flex items-center p-1 rounded-xl border border-slate-200 bg-slate-50">
             <button
+              type="button"
               onClick={() => setDashboardMode('operacional')}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer font-bold ${
                 dashboardMode === 'operacional'
-                  ? 'bg-[#37558d] text-white font-bold shadow-xs'
-                  : 'text-[#37558d] font-bold hover:bg-[#37558d] hover:text-white hover:font-bold'
+                  ? 'bg-[#37558d] text-white shadow-xs'
+                  : 'text-[#37558d] hover:bg-[#37558d]/10'
               }`}
             >
               Visão Operacional
             </button>
             <button
+              type="button"
               onClick={() => setDashboardMode('executivo')}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer font-bold ${
                 dashboardMode === 'executivo'
-                  ? 'bg-[#37558d] text-white font-bold shadow-xs'
-                  : 'text-[#37558d] font-bold hover:bg-[#37558d] hover:text-white hover:font-bold'
+                  ? 'bg-[#37558d] text-white shadow-xs'
+                  : 'text-[#37558d] hover:bg-[#37558d]/10'
               }`}
             >
               Visão Executiva (Gestão)
@@ -252,61 +235,59 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           </div>
 
           <button
+            type="button"
             onClick={() => onNavigate('organograma')}
-            id="btn-dashboard-organograma"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] hover:text-white hover:font-bold border border-slate-200 text-[#37558d] text-xs font-bold transition-all cursor-pointer shadow-xs group"
-            title="Acessar Organograma Institucional"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] border border-slate-200 text-[#37558d] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-xs group"
           >
-            <Network className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
-            <span className="group-hover:text-white group-hover:font-bold">Organograma</span>
+            <Network className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white transition-colors" />
+            <span>Organograma</span>
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate('colaboradores')}
-            id="btn-dashboard-colaboradores"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] hover:text-white hover:font-bold border border-slate-200 text-[#37558d] text-xs font-bold transition-all cursor-pointer shadow-xs group"
-            title="Acessar Área de Colaboradores"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#37558d] border border-slate-200 text-[#37558d] hover:text-white text-xs font-bold transition-all cursor-pointer shadow-xs group"
           >
-            <Shield className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
-            <span className="group-hover:text-white group-hover:font-bold">Colaboradores</span>
+            <Shield className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white transition-colors" />
+            <span>Colaboradores</span>
           </button>
         </div>
       </div>
 
-      {/* 6 KEY OPERATIONAL KPIS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {operationalKPIs.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <div
+            <button
               key={kpi.id}
-              id={kpi.id}
+              type="button"
               onClick={() => onNavigate(kpi.action)}
-              className="p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-[#37558d] transition-all cursor-pointer group shadow-sm hover:shadow-lg relative overflow-hidden"
+              className="p-4 rounded-2xl border border-[#37558d] bg-[#37558d] hover:bg-[#2c4472] transition-all cursor-pointer group shadow-xs hover:shadow-md relative overflow-hidden flex flex-col justify-between text-left w-full"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-[#37558d] group-hover:text-white group-hover:font-bold transition-colors truncate">
-                  {kpi.title}
-                </span>
-                <div className="p-1.5 rounded-lg bg-blue-50 group-hover:bg-white/20 text-[#37558d] group-hover:text-white transition-colors">
-                  <Icon className="w-4 h-4" />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-white truncate">
+                    {kpi.title}
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-white/20 text-white shrink-0">
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-white tracking-tight">
+                  {kpi.value}
                 </div>
               </div>
-              <div className="text-2xl font-black text-[#37558d] group-hover:text-white group-hover:font-bold tracking-tight transition-colors">
-                {kpi.value}
-              </div>
-              <p className="text-[11px] text-[#37558d]/80 font-medium group-hover:text-white/90 mt-1 truncate transition-colors">
+              <p className="text-[11px] text-blue-100 font-medium mt-2 truncate">
                 {kpi.label}
               </p>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      {/* CONDITIONAL RENDERING: VISÃO EXECUTIVA (GESTOR/DIRETORIA) */}
       {dashboardMode === 'executivo' && (
-        <div className="space-y-6 animate-in fade-in duration-200" id="executive-pillars-grid">
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/95 border border-slate-200 shadow-md">
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#37558d]" />
@@ -314,7 +295,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   Os 8 Pilares da Gestão Executiva ByComp
                 </h2>
               </div>
-              <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Monitoramento consolidado para tomada de decisão ágil sem ruído técnico.
               </p>
             </div>
@@ -328,53 +309,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             {executivePillars.map((ep) => {
               const Icon = ep.icon;
               return (
-                <div
+                <button
                   key={ep.id}
+                  type="button"
                   onClick={() => onNavigate(ep.action)}
-                  className="p-5 rounded-2xl bg-white/95 border border-slate-200 hover:border-[#37558d] hover:bg-[#37558d] transition-all cursor-pointer shadow-md flex flex-col justify-between group"
+                  className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-[#37558d] hover:shadow-md transition-all cursor-pointer shadow-xs flex flex-col justify-between group text-left w-full"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-mono text-[10px] font-bold tracking-widest text-[#37558d]/80 group-hover:text-white uppercase">
+                      <span className="font-mono text-[10px] font-black tracking-widest text-[#37558d] uppercase">
                         {ep.pillar}
                       </span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${ep.badgeColor} group-hover:bg-white/20 group-hover:text-white group-hover:border-white/40`}>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${ep.badgeColor}`}>
                         {ep.badge}
                       </span>
                     </div>
 
                     <div className="flex items-start gap-3 mb-2">
-                      <div className="p-2 rounded-xl bg-blue-50 border border-blue-100 text-[#37558d] group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30 transition-colors">
-                        <Icon className="w-5 h-5" />
+                      <div className="p-2 rounded-xl bg-blue-50 border border-blue-100 text-[#37558d] shrink-0">
+                        <Icon className="w-5 h-5 text-[#37558d]" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-[#37558d] group-hover:text-white transition-colors">
+                        <h3 className="text-sm font-bold text-slate-800">
                           {ep.title}
                         </h3>
-                        <div className="text-lg font-black text-[#37558d] group-hover:text-white mt-0.5">
+                        <div className="text-lg font-black text-[#37558d] mt-0.5">
                           {ep.metric}
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-xs text-[#37558d]/80 group-hover:text-white/90 leading-relaxed mt-2">
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed mt-2">
                       {ep.subtext}
                     </p>
                   </div>
 
-                  <div className="pt-3 mt-4 border-t border-slate-200 group-hover:border-white/30 flex items-center justify-between text-xs text-[#37558d]">
-                    <span className="text-[11px] font-semibold group-hover:text-white">Explorar módulo</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white group-hover:translate-x-1 transition-all" />
+                  <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-[#37558d]">
+                    <span className="text-[11px] font-bold">Explorar módulo</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#37558d] group-hover:translate-x-1 transition-transform" />
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* CONTROLE DE PONTO ELETRÔNICO HOJE */}
-      <div className="bg-white/95 border border-slate-200 rounded-3xl p-5 shadow-lg space-y-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2">
@@ -383,17 +364,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 Status do Ponto Eletrônico Hoje (48 Colaboradores)
               </h3>
             </div>
-            <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               Jornada de trabalho acompanhada em tempo real com tolerância legal de 10 min.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={() => onNavigate('gestao_ponto')}
-            className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 self-start sm:self-center"
+            className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 self-start sm:self-center cursor-pointer"
           >
             <span>Gerenciar Ponto (Admin)</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 text-[#37558d]" />
           </button>
         </div>
 
@@ -406,86 +388,84 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 className={`p-3.5 rounded-2xl border ${item.color} flex items-center justify-between shadow-2xs`}
               >
                 <div>
-                  <span className="text-xs font-semibold block opacity-80">{item.label}</span>
+                  <span className="text-xs font-bold block opacity-90">{item.label}</span>
                   <div className="text-xl font-black mt-0.5">{item.count}</div>
                 </div>
-                <Icon className="w-5 h-5 opacity-80" />
+                <Icon className="w-5 h-5 opacity-90" />
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* GRÁFICO — PRODUTIVIDADE POR SETOR (7 cols) */}
-        <div className="lg:col-span-7 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#37558d]" />
-                <h3 className="font-black text-sm text-[#37558d]">PRODUTIVIDADE POR SETOR (SLA)</h3>
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#37558d]" />
+                  <h3 className="font-black text-sm text-[#37558d]">PRODUTIVIDADE POR SETOR (SLA)</h3>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  N1, N2, N3, Front-End, Back-End, Cyber Security e DBA
+                </p>
               </div>
-              <p className="text-xs text-[#37558d]/80 font-medium mt-0.5">
-                N1, N2, N3, Front-End, Back-End, Cyber Security e DBA
-              </p>
+              <span className="text-[11px] font-mono text-[#37558d] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
+                7 Setores Ativos
+              </span>
             </div>
-            <span className="text-[11px] font-mono text-[#37558d] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
-              7 Setores Ativos
-            </span>
-          </div>
 
-          {/* Visual Sector Bar Chart */}
-          <div className="space-y-3.5 my-2">
-            {SECTOR_PRODUCTIVITY.map((sec) => (
-              <div
-                key={sec.sector}
-                onMouseEnter={() => setSelectedSector(sec.sector)}
-                onMouseLeave={() => setSelectedSector(null)}
-                className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                  selectedSector === sec.sector ? 'bg-blue-50' : 'hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#1e3a6c]">{sec.sector}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      ({sec.tasksDone} concluídas • {sec.inProgress} em curso)
-                    </span>
+            <div className="space-y-3.5 my-2">
+              {SECTOR_PRODUCTIVITY.map((sec) => (
+                <div
+                  key={sec.sector}
+                  onMouseEnter={() => setSelectedSector(sec.sector)}
+                  onMouseLeave={() => setSelectedSector(null)}
+                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                    selectedSector === sec.sector ? 'bg-blue-50' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-800">{sec.sector}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        ({sec.tasksDone} concluídas • {sec.inProgress} em curso)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-mono text-slate-500">Meta: {sec.SLA}</span>
+                      <span className="font-mono font-bold text-[#37558d] text-xs">
+                        {sec.score}%
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono text-slate-500">Meta: {sec.SLA}</span>
-                    <span className="font-mono font-bold text-[#37558d] text-xs">
-                      {sec.score}%
-                    </span>
+
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
+                    <div
+                      className="h-full bg-[#37558d] rounded-full transition-all duration-500"
+                      style={{ width: `${sec.score}%` }}
+                    ></div>
                   </div>
                 </div>
-
-                {/* Progress Track */}
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#8ad0da] to-[#37558d] rounded-full transition-all duration-500"
-                    style={{ width: `${sec.score}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
-            <span>Média geral da TI: <strong className="text-emerald-700 font-mono font-bold">93.2%</strong></span>
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium mt-4">
+            <span>Média geral da TI: <strong className="text-[#37558d] font-mono font-bold">93.2%</strong></span>
             <button
+              type="button"
               onClick={() => onNavigate('relatorios')}
-              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
+              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 cursor-pointer"
             >
               <span>Ver relatório consolidado</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 text-[#37558d]" />
             </button>
           </div>
         </div>
 
-        {/* GRÁFICO — STATUS DAS TAREFAS (5 cols) */}
-        <div className="lg:col-span-5 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -496,17 +476,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 100% Pipeline
               </span>
             </div>
-            <p className="text-xs text-[#37558d]/80 font-medium mb-4">
+            <p className="text-xs text-slate-500 font-medium mb-4">
               Distribuição: Pendentes, Em andamento, Em revisão, Concluídas e Atrasadas
             </p>
 
-            {/* Visual breakdown horizontal stacked meter */}
             <div className="w-full h-4 bg-slate-100 rounded-lg overflow-hidden flex mb-5 shadow-inner border border-slate-200">
               {TASK_STATUS_BREAKDOWN.map((st) => {
-                const pct = ((st.count / totalTasks) * 100).toFixed(1);
+                const pct = totalTasks > 0 ? ((st.count / totalTasks) * 100).toFixed(1) : '0';
                 return (
                   <div
                     key={st.name}
+                    aria-label={`${st.name}: ${st.count} (${pct}%)`}
                     title={`${st.name}: ${st.count} (${pct}%)`}
                     style={{ width: `${pct}%`, backgroundColor: st.color }}
                     className="h-full hover:opacity-80 transition-opacity"
@@ -515,10 +495,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               })}
             </div>
 
-            {/* Legend & Breakdown rows */}
             <div className="space-y-2">
               {TASK_STATUS_BREAKDOWN.map((st) => {
-                const pct = ((st.count / totalTasks) * 100).toFixed(0);
+                const pct = totalTasks > 0 ? ((st.count / totalTasks) * 100).toFixed(0) : '0';
                 return (
                   <div
                     key={st.name}
@@ -526,7 +505,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   >
                     <div className="flex items-center gap-2.5">
                       <span
-                        className="w-2.5 h-2.5 rounded-full"
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: st.color }}
                       ></span>
                       <span className="font-bold text-slate-800">{st.name}</span>
@@ -544,31 +523,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           <div className="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center text-xs">
             <span className="text-slate-600">Ciclo médio de entrega: <strong className="text-[#37558d] font-bold">1.8 dias</strong></span>
             <button
+              type="button"
               onClick={() => onNavigate('meu_kanban')}
-              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
+              className="text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 cursor-pointer"
             >
               <span>Abrir Meu Kanban</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 text-[#37558d]" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Bottom Row: ATIVIDADES DA SEMANA & AGENDA & ALERTAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ATIVIDADES RECENTES (7 cols) */}
-        <div className="lg:col-span-7 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#37558d]" />
               <h3 className="font-black text-sm text-[#37558d]">ATIVIDADES DA SEMANA & REGISTROS</h3>
             </div>
             <button
+              type="button"
               onClick={() => onNavigate('planilhas')}
-              className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1"
+              className="text-xs text-[#37558d] hover:text-[#1e3a6c] font-bold flex items-center gap-1 cursor-pointer"
             >
               <span>Base Completa de Atividades</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 text-[#37558d]" />
             </button>
           </div>
 
@@ -588,7 +567,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   </p>
                 </div>
 
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 text-[#37558d] border border-slate-200 shrink-0">
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-100 text-[#37558d] border border-blue-200 shrink-0">
                   {act.sector}
                 </span>
               </div>
@@ -596,18 +575,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* AGENDA DO DIA & ALERTAS (5 cols) */}
-        <div className="lg:col-span-5 bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
           <div>
-            {/* AGENDA HOJE */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#37558d]" />
                 <h3 className="font-black text-sm text-[#37558d]">AGENDA DO DIA</h3>
               </div>
               <button
+                type="button"
                 onClick={() => onNavigate('agenda')}
-                className="text-[11px] text-[#37558d] font-bold hover:underline"
+                className="text-[11px] text-[#37558d] font-bold hover:underline cursor-pointer"
               >
                 Ver calendário
               </button>
@@ -621,7 +599,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                 >
                   <div>
                     <span className="font-bold text-slate-800 block">{ev.title}</span>
-                    <span className="text-[11px] text-[#37558d]/75 font-medium">{ev.location} • {ev.type}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold">{ev.location} • {ev.type}</span>
                   </div>
                   <span className="font-mono text-[#37558d] font-bold px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[10px]">
                     {ev.time}
@@ -630,7 +608,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               ))}
             </div>
 
-            {/* ALERTAS */}
             <div className="flex items-center justify-between mb-3 pt-3 border-t border-slate-200">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -664,11 +641,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           </div>
 
           <button
+            type="button"
             onClick={() => onNavigate('auditoria')}
             className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-[#37558d] hover:text-white text-xs font-bold text-[#37558d] flex items-center justify-center gap-1.5 transition-all border border-slate-200 cursor-pointer shadow-2xs group"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white" />
-            <span className="group-hover:text-white group-hover:font-bold">Consultar Log de Auditoria & Segurança</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-[#37558d] group-hover:text-white transition-colors" />
+            <span>Consultar Log de Auditoria & Segurança</span>
           </button>
         </div>
       </div>

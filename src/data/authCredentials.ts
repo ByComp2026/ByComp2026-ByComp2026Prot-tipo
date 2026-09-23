@@ -27,186 +27,35 @@ export interface UserCredentialAccount {
 
 export const USER_CREDENTIALS: UserCredentialAccount[] = [
   {
-    id: 'user-victor',
-    name: 'Victor Estevão',
-    email: 'victor.estevao@bycomp.com.br',
-    password: 'admin@bycomp2026',
+    id: 'user-master-victor',
+    name: 'Victor (Master Admin)',
+    email: 'victormorekids@gmail.com',
+    password: '842867',
     role: 'SUPER_ADMIN',
-    roleLabel: 'SUPER ADMINISTRADOR',
+    roleLabel: 'SUPER ADMINISTRADOR (MASTER)',
     hierarchyLevel: 1,
-    sector: 'Gestão',
+    sector: 'Gestão Executiva',
     area: 'ADMINISTRATIVO',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     phone: '(11) 98765-4321',
     admissionDate: '2021-01-10',
     status: 'Em atividade',
-    currentTask: 'Supervisão executiva e governança completa da plataforma',
-    description: 'Acesso irrestrito a 100% das 22 telas e módulos críticos do ecossistema.',
-    allowedScreensCount: 27,
+    currentTask: 'Governança master, supervisão executiva e controle irrestrito',
+    description: 'Usuário Master único com acesso irrestrito a 100% das telas, banco de dados Firebase e configurações biométricas.',
+    allowedScreensCount: 28,
     badgeStyle: {
       bg: 'bg-purple-950/80',
       text: 'text-purple-300',
       border: 'border-purple-700/80'
     },
     keyPermissions: [
+      'Acesso total e irrestrito (Master Super Admin)',
       'Visualizar e gerenciar todos os setores organizacionais',
-      'Criar, editar e bloquear colaboradores e credenciais',
-      'Configurar matriz de permissões e políticas RBAC',
+      'Cadastro e validação de biometria facial para ponto',
+      'Conexão ativa Firebase Firestore e migração para PostgreSQL',
       'Acesso à Trilha de Auditoria e Logs de Conformidade',
-      'Visualizar todos os Kanbans (N1, N2, N3, Devs, DBA, Sec)',
-      'Gestão global de ponto de todos os 48 colaboradores',
-      'Configurações de infraestrutura, IA, WhatsApp e Redes Sociais'
-    ]
-  },
-  {
-    id: 'user-helena',
-    name: 'Helena Santos',
-    email: 'helena.santos@bycomp.com.br',
-    password: 'admin@rh2026',
-    role: 'ADMINISTRATIVO',
-    roleLabel: 'ADMINISTRATIVO',
-    hierarchyLevel: 2,
-    sector: 'RH',
-    area: 'ADMINISTRATIVO',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    phone: '(11) 99871-0002',
-    admissionDate: '2022-04-12',
-    status: 'Em atividade',
-    currentTask: 'Acompanhamento de ponto, colaboradores e rotinas administrativas',
-    description: 'Gestão de pessoas, rotinas administrativas, controle de ponto e documentação corporativa.',
-    allowedScreensCount: 22,
-    badgeStyle: {
-      bg: 'bg-sky-950/80',
-      text: 'text-sky-300',
-      border: 'border-sky-700/80'
-    },
-    keyPermissions: [
-      'Cadastro e manutenção dos 48 colaboradores',
-      'Gestão corporativa de ponto e aprovação de espelhos',
-      'Central de Formulários padronizados e requisições',
-      'Base de Planilhas operacionais e controles administrativos',
-      'Agenda corporativa e reuniões institucionais',
-      'Acompanhamento de Help Desk e clientes'
-    ]
-  },
-  {
-    id: 'user-carlos',
-    name: 'Carlos Eduardo',
-    email: 'carlos.eduardo@bycomp.com.br',
-    password: 'gestor@sup2026',
-    role: 'GESTOR',
-    roleLabel: 'GESTOR (Suporte N3)',
-    hierarchyLevel: 3,
-    sector: 'N3',
-    area: 'SUPORTE',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    phone: '(11) 99871-0003',
-    admissionDate: '2022-08-01',
-    status: 'Em atividade',
-    currentTask: 'Gestão da fila técnica N3 e SLA de infraestrutura crítica',
-    description: 'Liderança técnica da equipe de Suporte N3. Foco em produtividade, fila e SLAs setoriais.',
-    allowedScreensCount: 18,
-    badgeStyle: {
-      bg: 'bg-emerald-950/80',
-      text: 'text-emerald-300',
-      border: 'border-emerald-700/80'
-    },
-    keyPermissions: [
-      'Kanban da equipe técnica de Suporte N3',
-      'Acompanhamento de tarefas e fila de chamados críticos',
-      'Indicadores de produtividade e SLA do setor',
-      'Registro de ponto eletrônico individual e espelho próprio',
-      'Agenda técnica e plantões da equipe N3',
-      'Gestão de equipamentos e hardware de infraestrutura'
-    ]
-  },
-  {
-    id: 'user-gabriel',
-    name: 'Gabriel Ribeiro',
-    email: 'gabriel.ribeiro@bycomp.com.br',
-    password: 'colab@n12026',
-    role: 'COLABORADOR',
-    roleLabel: 'COLABORADOR (Suporte N1)',
-    hierarchyLevel: 4,
-    sector: 'N1',
-    area: 'SUPORTE',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    phone: '(11) 99871-0004',
-    admissionDate: '2023-02-15',
-    status: 'Em atividade',
-    currentTask: 'Atendimento a chamados N1 e triagem de chamados',
-    description: 'Operação individual focada em suas demandas atribuídas e ponto eletrônico.',
-    allowedScreensCount: 9,
-    badgeStyle: {
-      bg: 'bg-slate-800/80',
-      text: 'text-slate-300',
-      border: 'border-slate-700'
-    },
-    keyPermissions: [
-      'Meu Kanban individual e tarefas atribuídas',
-      'Registro de Ponto Eletrônico biométrico diário',
-      'Consulta ao espelho de horas individual',
-      'Apontamento de atividades e tempo gasto',
-      'Agenda pessoal de alinhamentos e compromissos',
-      'Atendimento aos chamados atribuídos da fila N1'
-    ]
-  },
-  {
-    id: 'user-beatriz',
-    name: 'Beatriz Lima',
-    email: 'beatriz.lima@bycomp.com.br',
-    password: 'dev@lead2026',
-    role: 'GESTOR',
-    roleLabel: 'GESTOR (Front-End)',
-    hierarchyLevel: 3,
-    sector: 'Front-End',
-    area: 'DESENVOLVIMENTO',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    phone: '(11) 99871-0005',
-    admissionDate: '2022-03-20',
-    status: 'Em atividade',
-    currentTask: 'Sprint review do design system e novas interfaces',
-    description: 'Liderança do Squad Front-End, com foco em desenvolvimento web, IA e interfaces.',
-    allowedScreensCount: 19,
-    badgeStyle: {
-      bg: 'bg-emerald-950/80',
-      text: 'text-emerald-300',
-      border: 'border-emerald-700/80'
-    },
-    keyPermissions: [
-      'Kanban do squad Front-End e entregas da sprint',
-      'AI Hub e automações inteligentes de código',
-      'Marketing & Criação de Vídeos com IA',
-      'Acompanhamento de demandas e métricas da equipe Dev'
-    ]
-  },
-  {
-    id: 'user-lucas',
-    name: 'Lucas Martins',
-    email: 'lucas.martins@bycomp.com.br',
-    password: 'sec@guard2026',
-    role: 'GESTOR',
-    roleLabel: 'GESTOR (Cyber Security)',
-    hierarchyLevel: 3,
-    sector: 'Cyber Security',
-    area: 'SEGURANÇA',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-    phone: '(11) 99871-0006',
-    admissionDate: '2021-11-05',
-    status: 'Em atividade',
-    currentTask: 'Auditoria de vulnerabilidades e resposta a alertas do SOC',
-    description: 'Líder de Cyber Security e conformidade de segurança de dados.',
-    allowedScreensCount: 18,
-    badgeStyle: {
-      bg: 'bg-emerald-950/80',
-      text: 'text-emerald-300',
-      border: 'border-emerald-700/80'
-    },
-    keyPermissions: [
-      'Monitoramento de incidentes de segurança e chamados SOC',
-      'Kanban de correções de segurança e conformidade',
-      'Inventário de equipamentos de rede e firewall',
-      'Relatórios de mitigação de risco e incidentes'
+      'Visualização e aprovação de todos os Kanbans e chamados',
+      'Gestão global de ponto e espelhos de registro eletrônico'
     ]
   }
 ];

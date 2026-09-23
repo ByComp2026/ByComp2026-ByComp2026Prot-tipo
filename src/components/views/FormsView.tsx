@@ -30,6 +30,7 @@ import { FORMS_DATA, CURRENT_USER, SECTORS } from '../../data/mockData';
 import { FormTemplate, Collaborator, ViewScreen } from '../../types';
 import { activitySyncService } from '../../services/activitySyncService';
 import { exportFormSubmissionsToExcel, FormSubmissionRecord } from '../../utils/excelExport';
+import { taskService } from '../../services/taskService';
 
 interface FormsViewProps {
   currentUser?: Collaborator;
@@ -54,11 +55,22 @@ export const FormsView: React.FC<FormsViewProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
-  // Subscribe to real-time updates from activitySyncService (Help Desk finalizations)
+  // Subscribe to real-time updates from Firebase Firestore AND activitySyncService
   useEffect(() => {
-    return activitySyncService.subscribe(() => {
+    const unsubFirestore = taskService.subscribeSubmissions((firestoreSubs) => {
+      if (firestoreSubs && firestoreSubs.length > 0) {
+        setSubmissions(firestoreSubs);
+      }
+    });
+
+    const unsubLocal = activitySyncService.subscribe(() => {
       setSubmissions(activitySyncService.getSubmissions());
     });
+
+    return () => {
+      unsubFirestore();
+      unsubLocal();
+    };
   }, []);
 
   // New form modal state
@@ -123,7 +135,7 @@ export const FormsView: React.FC<FormsViewProps> = ({
     });
   }, [submissions, selectedForm, statusFilter, colabFilter, setorFilter, dbSearch]);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedForm) return;
 
@@ -139,6 +151,12 @@ export const FormsView: React.FC<FormsViewProps> = ({
     };
 
     activitySyncService.addSubmission(newRecord);
+    try {
+      await taskService.createSubmission(newRecord);
+    } catch (err) {
+      console.warn('Registro salvo localmente, erro no Firestore:', err);
+    }
+
     setSuccessMessage(true);
     setFormData({});
 

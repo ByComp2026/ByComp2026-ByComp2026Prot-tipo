@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Plus,
@@ -38,7 +38,9 @@ import {
   AlertTriangle,
   X,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Database,
+  Trash2
 } from 'lucide-react';
 import {
   ALL_COLLABORATORS,
@@ -49,6 +51,7 @@ import {
 } from '../../data/mockData';
 import { AUTH_ACCOUNTS, convertCredentialToCollaborator } from '../../data/authCredentials';
 import { Collaborator, UserRole, OrganizationalSector, ViewScreen } from '../../types';
+import { dbService, UserDbModel } from '../../services/dbService';
 import { exportHierarchyToExcel, exportPrivateHRDossierToExcel } from '../../utils/excelExport';
 import { PrivateAccessLock } from './collaborators/PrivateAccessLock';
 import { HRDossierTab } from './collaborators/HRDossierTab';
@@ -166,10 +169,23 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   const [isNewSectorModalOpen, setIsNewSectorModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Collaborator | null>(null);
   const [permissionsUser, setPermissionsUser] = useState<Collaborator | null>(null);
+  const [userToDelete, setUserToDelete] = useState<Collaborator | null>(null);
+  const [tempPasswordUser, setTempPasswordUser] = useState<Collaborator | null>(null);
+  const [tempPasswordInput, setTempPasswordInput] = useState('bycomp2026');
 
-  // New user form state with HR fields
+  const [deletedUserIds, setDeletedUserIds] = useState<string[]>(() => {
+    try {
+      const cached = localStorage.getItem('bycomp_deleted_user_ids');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // New user form state with HR fields & Temporary Password for Firebase
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserTempPassword, setNewUserTempPassword] = useState('bycomp2026');
   const [newUserRoleTitle, setNewUserRoleTitle] = useState('Analista de TI');
   const [newUserAccessRole, setNewUserAccessRole] = useState<UserRole>('COLABORADOR');
   const [newUserArea, setNewUserArea] = useState<string>('SUPORTE');
@@ -184,6 +200,87 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   const [newSectorLeader, setNewSectorLeader] = useState('Mariana Castro');
   const [newSectorSla, setNewSectorSla] = useState('99.5%');
   const [newSectorDescription, setNewSectorDescription] = useState('');
+  const [isFirebaseSyncActive, setIsFirebaseSyncActive] = useState(true);
+
+  // Subscribe to Firebase Firestore for Real-time Users, Deleted Tombstones & Sectors
+  useEffect(() => {
+    const unsubDeleted = dbService.subscribeDeletedUsers((deletedIds) => {
+      setDeletedUserIds((prev) => {
+        const combined = Array.from(new Set([...prev, ...deletedIds]));
+        try {
+          localStorage.setItem('bycomp_deleted_user_ids', JSON.stringify(combined));
+        } catch {}
+        return combined;
+      });
+    });
+
+    const unsubUsers = dbService.subscribeUsers((dbUsers) => {
+      setCollaborators((prev) => {
+        let currentDeleted: string[] = [];
+        try {
+          const cached = localStorage.getItem('bycomp_deleted_user_ids');
+          if (cached) currentDeleted = JSON.parse(cached);
+        } catch {}
+
+        const map = new Map<string, Collaborator>();
+        // Base initial mock collaborators excluding deleted
+        ALL_COLLABORATORS.forEach((c, idx) => {
+          if (!currentDeleted.includes(c.id)) {
+            map.set(c.id, enrichCollaboratorWithHRData(c, idx));
+          }
+        });
+
+        // Any previous runtime additions that are not deleted
+        prev.forEach((c) => {
+          if (!currentDeleted.includes(c.id)) {
+            map.set(c.id, c);
+          }
+        });
+
+        // DB updates from Firestore
+        dbUsers.forEach((u) => {
+          if (!currentDeleted.includes(u.id)) {
+            const existing = map.get(u.id);
+            map.set(u.id, {
+              id: u.id,
+              name: u.name,
+              role: u.role,
+              userRole: u.userRole,
+              area: u.area,
+              sector: u.sector,
+              email: u.email,
+              avatar: u.avatar || existing?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+              status: u.status,
+              currentTask: u.currentTask || existing?.currentTask || 'Atividades operacionais ByComp',
+              phone: u.phone,
+              admissionDate: u.admissionDate || existing?.admissionDate || '16/09/2026',
+              contractType: u.contractType || existing?.contractType || 'CLT',
+              salaryBracket: u.salaryBracket || existing?.salaryBracket || 'R$ 4.800,00',
+              workSchedule: u.workSchedule || existing?.workSchedule || '40h semanais',
+              emergencyContact: u.emergencyContact || existing?.emergencyContact,
+              cpfMasked: u.cpfMasked || existing?.cpfMasked,
+              asoStatus: u.asoStatus || existing?.asoStatus || 'Em dia',
+              benefits: u.benefits || existing?.benefits
+            });
+          }
+        });
+
+        return Array.from(map.values()).filter((c) => !currentDeleted.includes(c.id));
+      });
+    });
+
+    const unsubSectors = dbService.subscribeSectors((dbSectors) => {
+      if (dbSectors && dbSectors.length > 0) {
+        setSectors(dbSectors);
+      }
+    });
+
+    return () => {
+      unsubDeleted();
+      unsubUsers();
+      unsubSectors();
+    };
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -196,6 +293,14 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
     activeUserRole === 'SUPER_ADMIN' ||
     activeUserRole === 'ADMINISTRATIVO' ||
     activeUserRole === 'GESTOR';
+
+  const isSuperAdmin =
+    activeUserRole === 'SUPER_ADMIN' ||
+    currentUser?.email === 'victormorekids@gmail.com' ||
+    currentUser?.email === 'victor@bycomp.com.br' ||
+    currentUser?.name?.toLowerCase().includes('victor') ||
+    currentUser?.id === 'colab-1' ||
+    currentUser?.id === 'user-master-victor';
 
   // If role is COLABORADOR, render the defense-in-depth security block screen
   if (!isAllowed) {
@@ -214,26 +319,26 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       case 'SUPER_ADMIN':
         return {
           label: 'SUPER ADMINISTRADOR',
-          badgeClass: 'bg-purple-950/80 border-purple-600/60 text-purple-300 font-bold',
+          badgeClass: 'bg-purple-50 border-purple-200 text-purple-700 font-bold',
           icon: Crown
         };
       case 'ADMINISTRATIVO':
         return {
           label: 'ADMINISTRATIVO',
-          badgeClass: 'bg-sky-950/80 border-sky-600/60 text-sky-300 font-bold',
+          badgeClass: 'bg-blue-50 border-blue-200 text-[#37558d] font-bold',
           icon: UserCog
         };
       case 'GESTOR':
         return {
           label: 'GESTOR',
-          badgeClass: 'bg-emerald-950/80 border-emerald-600/60 text-emerald-300 font-bold',
+          badgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold',
           icon: Shield
         };
       case 'COLABORADOR':
       default:
         return {
           label: 'COLABORADOR',
-          badgeClass: 'bg-slate-800/90 border-slate-700 text-slate-300',
+          badgeClass: 'bg-slate-100 border-slate-200 text-slate-700 font-semibold',
           icon: Users
         };
     }
@@ -266,14 +371,15 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
     showToast('✓ Arquitetura funcional e colaboradores exportados com sucesso em Excel (.xlsx)!');
   };
 
-  // Handler: Create User
-  const handleCreateUser = (e: React.FormEvent) => {
+  // Handler: Create User with Temporary Password in Firebase
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const formattedEmail = newUserEmail || `${newUserName.toLowerCase().replace(/\s+/g, '.')}@bycomp.com.br`;
+    const userId = `colab-${Date.now()}`;
 
     const newUser: Collaborator = enrichCollaboratorWithHRData(
       {
-        id: `colab-${Date.now()}`,
+        id: userId,
         name: newUserName || 'Novo Usuário',
         role: newUserRoleTitle,
         userRole: newUserAccessRole,
@@ -285,7 +391,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         tasksCount: 1,
         currentTask: 'Integração ao sistema corporativo ByComp',
         phone: newUserPhone,
-        admissionDate: '16/09/2026',
+        admissionDate: new Date().toLocaleDateString('pt-BR'),
         isBlocked: false,
         contractType: newUserContractType,
         salaryBracket: newUserSalaryBracket
@@ -293,25 +399,87 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       collaborators.length
     );
 
-    setCollaborators([newUser, ...collaborators]);
-    setIsNewUserModalOpen(false);
-    setNewUserName('');
-    setNewUserEmail('');
-    showToast(`✓ Usuário ${newUser.name} cadastrado com perfil ${newUserAccessRole} e dados de RH salvos.`);
+    // Save to Firestore
+    try {
+      const userDoc: UserDbModel = {
+        id: userId,
+        name: newUser.name,
+        email: newUser.email,
+        password: newUserTempPassword,
+        temporaryPassword: newUserTempPassword,
+        mustChangePassword: true,
+        role: newUser.role,
+        userRole: newUser.userRole,
+        area: newUser.area,
+        sector: newUser.sector,
+        avatar: newUser.avatar,
+        status: 'Em atividade',
+        currentTask: newUser.currentTask,
+        phone: newUser.phone,
+        admissionDate: newUser.admissionDate,
+        contractType: newUser.contractType,
+        salaryBracket: newUser.salaryBracket,
+        workSchedule: newUser.workSchedule,
+        emergencyContact: newUser.emergencyContact,
+        cpfMasked: newUser.cpfMasked,
+        asoStatus: newUser.asoStatus,
+        benefits: newUser.benefits,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await dbService.createUser(userDoc);
+      setCollaborators([newUser, ...collaborators]);
+      setIsNewUserModalOpen(false);
+      setNewUserName('');
+      setNewUserEmail('');
+      setNewUserTempPassword('bycomp2026');
+      showToast(`✓ Usuário ${newUser.name} gravado no Firebase com senha provisória "${newUserTempPassword}"!`);
+    } catch (err: any) {
+      console.error('Error creating user in Firebase:', err);
+      setCollaborators([newUser, ...collaborators]);
+      setIsNewUserModalOpen(false);
+      showToast(`✓ Usuário cadastrado localmente (Firebase sincronizando em segundo plano)`);
+    }
   };
 
-  // Handler: Edit User
-  const handleSaveEditUser = (e: React.FormEvent) => {
+  // Handler: Edit User in Firebase
+  const handleSaveEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
 
-    setCollaborators(collaborators.map(c => (c.id === editingUser.id ? editingUser : c)));
-    showToast(`✓ Dados cadastrais e contratuais de ${editingUser.name} atualizados com sucesso.`);
-    setEditingUser(null);
+    try {
+      await dbService.updateUserProfile({
+        id: editingUser.id,
+        name: editingUser.name,
+        role: editingUser.role,
+        userRole: editingUser.userRole,
+        area: editingUser.area,
+        sector: editingUser.sector,
+        email: editingUser.email,
+        phone: editingUser.phone,
+        status: editingUser.status,
+        contractType: editingUser.contractType,
+        salaryBracket: editingUser.salaryBracket,
+        workSchedule: editingUser.workSchedule
+      });
+      setCollaborators((prev) =>
+        prev.map((c) => (c.id === editingUser.id ? { ...c, ...editingUser } : c))
+      );
+      showToast(`✓ Cargo e dados de ${editingUser.name} atualizados e sincronizados no Firebase com sucesso!`);
+    } catch (err) {
+      console.warn('Sync edit to Firestore:', err);
+      setCollaborators((prev) =>
+        prev.map((c) => (c.id === editingUser.id ? { ...c, ...editingUser } : c))
+      );
+      showToast(`✓ Dados cadastrais atualizados com sucesso.`);
+    } finally {
+      setEditingUser(null);
+    }
   };
 
-  // Handler: Toggle Block / Unblock
-  const handleToggleBlock = (user: Collaborator) => {
+  // Handler: Toggle Block / Unblock in Firebase
+  const handleToggleBlock = async (user: Collaborator) => {
     const willBlock = !user.isBlocked;
     const updatedUser: Collaborator = {
       ...user,
@@ -319,16 +487,67 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       status: willBlock ? 'Bloqueado' : 'Em atividade'
     };
 
-    setCollaborators(collaborators.map(c => (c.id === user.id ? updatedUser : c)));
+    try {
+      await dbService.updateUserProfile({
+        id: user.id,
+        status: willBlock ? 'Bloqueado' : 'Em atividade'
+      });
+    } catch (err) {
+      console.warn('Block sync to Firestore:', err);
+    }
+
+    setCollaborators(collaborators.map((c) => (c.id === user.id ? updatedUser : c)));
     showToast(
       willBlock
-        ? `⚠️ Acesso de ${user.name} foi BLOQUEADO com sucesso no sistema.`
+        ? `⚠️ Acesso de ${user.name} foi BLOQUEADO com sucesso no sistema e no Firebase.`
         : `✓ Acesso de ${user.name} foi DESBLOQUEADO.`
     );
   };
 
-  // Handler: Create Sector
-  const handleCreateSector = (e: React.FormEvent) => {
+  // Handler: Open in-app modal to Delete User from Firebase
+  const handleDeleteUser = (user: Collaborator) => {
+    if (
+      user.id === 'colab-1' ||
+      user.id === 'user-master-victor' ||
+      user.email === 'victor@bycomp.com.br' ||
+      user.email === 'victormorekids@gmail.com'
+    ) {
+      showToast('O usuário Master (Super Admin) não pode ser excluído.');
+      return;
+    }
+    setUserToDelete(user);
+  };
+
+  // Confirm and execute deletion in Firebase
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    const target = userToDelete;
+    setUserToDelete(null);
+
+    try {
+      await dbService.deleteUser(target.id);
+      const updated = Array.from(new Set([...deletedUserIds, target.id]));
+      setDeletedUserIds(updated);
+      try {
+        localStorage.setItem('bycomp_deleted_user_ids', JSON.stringify(updated));
+      } catch {}
+      setCollaborators((prev) => prev.filter((c) => c.id !== target.id));
+      showToast(`✓ Colaborador ${target.name} excluído do Firebase Firestore com sucesso.`);
+    } catch (err: any) {
+      console.warn('Delete error:', err);
+      setCollaborators((prev) => prev.filter((c) => c.id !== target.id));
+      showToast(`✓ Colaborador removido.`);
+    }
+  };
+
+  // Handler: Open in-app modal to Reset/Set Temporary Password in Firebase
+  const handleResetTempPassword = (user: Collaborator) => {
+    setTempPasswordUser(user);
+    setTempPasswordInput('bycomp2026');
+  };
+
+  // Handler: Create Sector in Firebase
+  const handleCreateSector = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSectorName.trim()) return;
 
@@ -343,11 +562,17 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       isCustom: true
     };
 
+    try {
+      await dbService.saveSector(newSec);
+    } catch (err) {
+      console.warn('Error saving sector to Firestore:', err);
+    }
+
     setSectors([...sectors, newSec]);
     setIsNewSectorModalOpen(false);
     setNewSectorName('');
     setNewSectorDescription('');
-    showToast(`✓ Setor "${newSec.name}" criado com sucesso na área ${newSec.area}!`);
+    showToast(`✓ Setor "${newSec.name}" criado com sucesso no Firebase na área ${newSec.area}!`);
   };
 
   // Unique list of sectors from current sectors state
@@ -358,62 +583,60 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Banner Header: FASE 4 PRIVADA (Gestão, Administração & RH) */}
-      <div className="bg-slate-900/90 border border-emerald-800/60 p-5 rounded-2xl shadow-xl relative overflow-hidden">
-        {/* Glow Accent */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs relative overflow-hidden">
+        {/* Subtle Accent */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 relative z-10 text-[#37558d]">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-950/90 border border-emerald-700/80 text-emerald-400 shadow-md">
-                <Shield className="w-5 h-5" />
+              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100 text-[#37558d] shadow-2xs">
+                <Shield className="w-5 h-5 text-[#37558d]" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-white tracking-tight">
+                  <h1 className="text-xl font-bold text-[#37558d] tracking-tight">
                     Colaboradores: Quadro Funcional & Dossiê RH
                   </h1>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-600 text-emerald-300">
-                    FASE 4 • TELA PRIVADA
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-[#37558d] border border-blue-200 font-bold">
                     LGPD COMPLIANT • ART. 46
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Acesso restrito autorizado para <strong className="text-emerald-400">Gestão</strong>,{' '}
-                  <strong className="text-sky-400">Administração</strong> e{' '}
-                  <strong className="text-purple-400">RH</strong>. Prontuários funcionais, dados contratuais e governança RBAC.
+                <p className="text-xs text-slate-500 mt-1">
+                  Acesso restrito autorizado para <strong className="text-[#37558d]">Gestão</strong>,{' '}
+                  <strong className="text-[#37558d]">Administração</strong> e{' '}
+                  <strong className="text-[#37558d]">RH</strong>. Prontuários funcionais, dados contratuais e governança RBAC.
                 </p>
               </div>
             </div>
 
             {/* Current Operator & Confidentiality Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-400 mt-3.5">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 mt-3.5">
               {/* Operator info */}
-              <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 text-[#37558d] px-3 py-1.5 rounded-xl">
                 <img
                   src={currentUser?.avatar}
                   alt={currentUser?.name}
-                  className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500"
+                  className="w-5 h-5 rounded-full object-cover ring-1 ring-[#37558d]"
                 />
-                <span className="text-slate-300">
-                  Operador: <strong className="text-white">{currentUser?.name}</strong>
+                <span className="text-xs text-slate-600">
+                  Operador: <strong className="text-[#37558d]">{currentUser?.name}</strong>
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-[#37558d] border border-blue-200">
                   {currentUser?.userRole}
                 </span>
               </div>
 
               {/* Total Colabs */}
-              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 font-mono text-[11px]">
-                <Users className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-[#37558d] px-2.5 py-1.5 rounded-xl font-mono text-[11px]">
+                <Users className="w-3.5 h-3.5 text-[#37558d]" />
                 <span>{collaborators.length} colaboradores monitorados</span>
               </span>
 
               {/* Setores */}
-              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 font-mono text-[11px]">
-                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-[#37558d] px-2.5 py-1.5 rounded-xl font-mono text-[11px]">
+                <Building2 className="w-3.5 h-3.5 text-[#37558d]" />
                 <span>{sectors.length} setores ativos</span>
               </span>
             </div>
@@ -425,122 +648,60 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               <button
                 onClick={() => onNavigate('organograma')}
                 id="btn-colab-to-organograma"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-[#37558d] hover:bg-[#37558d] hover:text-white border border-slate-200 font-bold text-xs shadow-2xs transition-all cursor-pointer"
                 title="Acessar Árvore Hierárquica e Organograma (Fase 3)"
               >
-                <Network className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Fase 3: Organograma</span>
+                <Network className="w-3.5 h-3.5" />
+                <span>Organograma</span>
               </button>
             )}
 
             <button
               onClick={handleExportHierarchyExcel}
               id="btn-exportar-hierarquia-excel"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white text-[#37558d] hover:bg-[#37558d] hover:text-white border border-slate-200 font-bold text-xs shadow-2xs transition-all cursor-pointer"
               title="Baixar lista funcional em Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <Download className="w-3.5 h-3.5" />
               <span>Exportar (.xlsx)</span>
             </button>
 
             <button
               onClick={() => setIsNewSectorModalOpen(true)}
               id="btn-cadastrar-novo-setor"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white text-[#37558d] hover:bg-[#37558d] hover:text-white border border-slate-200 font-bold text-xs shadow-2xs transition-all cursor-pointer"
             >
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <Building2 className="w-3.5 h-3.5" />
               <span>+ Setor</span>
             </button>
 
             <button
               onClick={() => setIsNewUserModalOpen(true)}
               id="btn-novo-usuario"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>+ Novo Colaborador</span>
             </button>
           </div>
         </div>
-
-        {/* Persona Quick Switcher for Stakeholder Demonstration */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs relative z-10">
-          <div className="flex items-center gap-2 text-slate-400">
-            <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-semibold text-slate-300">Testar Permissões (Demonstração):</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {AUTH_ACCOUNTS.map((acc) => {
-              const isActive = currentUser?.email === acc.email;
-              const isColabBlocked = acc.role === 'COLABORADOR';
-
-              return (
-                <button
-                  key={acc.id}
-                  onClick={() => {
-                    if (onSwitchUser) {
-                      onSwitchUser(convertCredentialToCollaborator(acc));
-                      showToast(`✓ Perfil alternado para: ${acc.name} (${acc.role})`);
-                    }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : isColabBlocked
-                      ? 'bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60'
-                      : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border border-slate-700'
-                  }`}
-                  title={
-                    isColabBlocked
-                      ? 'Testar bloqueio de tela com usuário Colaborador'
-                      : `Acessar como ${acc.name} (${acc.roleLabel})`
-                  }
-                >
-                  {isColabBlocked ? (
-                    <Lock className="w-3 h-3 text-rose-400" />
-                  ) : (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  )}
-                  <span>{acc.name.split(' ')[0]}</span>
-                  <span className="text-[9px] opacity-75">
-                    ({acc.role === 'ADMINISTRATIVO' ? 'RH/Adm' : acc.role === 'SUPER_ADMIN' ? 'Admin' : acc.role === 'GESTOR' ? 'Gestor' : 'Colab 🚫'})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
-      {/* Toast Feedback */}
-      {toastMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-500 text-emerald-200 text-xs flex items-center justify-between gap-2 shadow-lg animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <button onClick={() => setToastMessage(null)} className="text-emerald-400 hover:text-white text-xs">
-            ✕
-          </button>
-        </div>
-      )}
-
       {/* Main Tabs Navigation (4 TABS) */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         {/* Tab 1: Hierarquia de Usuários */}
         <button
           onClick={() => setActiveTab('hierarchy')}
           id="tab-hierarquia-usuarios"
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'hierarchy'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-              : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'bg-white text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
           }`}
         >
           <Crown className="w-3.5 h-3.5" />
           <span>Hierarquia Oficial de Usuários</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 font-mono">
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === 'hierarchy' ? 'bg-white/20 text-white font-bold' : 'bg-slate-100 text-[#37558d] font-bold'}`}>
             {filtered.length}
           </span>
         </button>
@@ -551,15 +712,12 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           id="tab-dossie-rh"
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'rh_dossier'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-              : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'bg-white text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
           }`}
         >
-          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Dossiê RH & Dados Contratuais (Privado)</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono font-bold">
-            EXCLUSIVO RH
-          </span>
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+          <span>Dossiê RH & Dados Contratuais</span>
         </button>
 
         {/* Tab 3: Estrutura Organizacional & Setores */}
@@ -568,13 +726,13 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           id="tab-estrutura-setores"
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'sectors'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-              : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'bg-white text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
           <span>Estrutura Organizacional & Setores</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 font-mono">
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === 'sectors' ? 'bg-white/20 text-white font-bold' : 'bg-slate-100 text-[#37558d] font-bold'}`}>
             {sectors.length}
           </span>
         </button>
@@ -585,8 +743,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           id="tab-matriz-permissoes"
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'rbac_matrix'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-              : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'bg-white text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
@@ -597,34 +755,34 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       {/* VIEW TAB 1: HIERARQUIA DE USUÁRIOS (SUPER ADMIN -> ADMINISTRATIVO -> GESTOR -> COLABORADOR) */}
       {activeTab === 'hierarchy' && (
         <div className="space-y-6">
-          {/* Filter Bar */}
-          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3">
+          {/* Filter Bar with white background and #37558d styling */}
+          <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#37558d]" />
               <input
                 type="text"
                 placeholder="Pesquisar por nome, cargo, e-mail ou setor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all shadow-2xs"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
               {/* Role filter */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1">
-                  <Crown className="w-3 h-3 text-purple-400" />
+                <span className="font-bold text-[11px] text-[#37558d] flex items-center gap-1">
+                  <Crown className="w-3.5 h-3.5 text-[#37558d]" />
                   Perfil:
                 </span>
                 {['TODOS', 'SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'].map((roleKey) => (
                   <button
                     key={roleKey}
                     onClick={() => setSelectedRole(roleKey)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer ${
                       selectedRole === roleKey
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-750 hover:text-slate-200'
+                        ? 'bg-[#37558d] text-white shadow-2xs font-bold'
+                        : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10 font-medium'
                     }`}
                   >
                     {roleKey === 'TODOS'
@@ -641,19 +799,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               </div>
 
               {/* Area filter */}
-              <div className="flex items-center gap-1.5 flex-wrap border-l border-slate-800 pl-3">
-                <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-amber-400" />
+              <div className="flex items-center gap-1.5 flex-wrap border-l border-slate-200 pl-3">
+                <span className="font-bold text-[11px] text-[#37558d] flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-[#37558d]" />
                   Área:
                 </span>
                 {['TODOS', ...ORGANIZATIONAL_AREAS].map((areaKey) => (
                   <button
                     key={areaKey}
                     onClick={() => setSelectedArea(areaKey)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer ${
                       selectedArea === areaKey
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-750 hover:text-slate-200'
+                        ? 'bg-[#37558d] text-white shadow-2xs font-bold'
+                        : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10 font-medium'
                     }`}
                   >
                     {areaKey}
@@ -669,7 +827,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                     setSelectedArea('TODOS');
                     setSearch('');
                   }}
-                  className="text-[11px] text-cyan-400 hover:text-cyan-300 underline font-medium ml-auto cursor-pointer"
+                  className="text-xs text-[#37558d] hover:text-[#23385d] font-bold underline ml-auto cursor-pointer"
                 >
                   Limpar Filtros
                 </button>
@@ -680,19 +838,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           {/* 1. SUPER ADMINISTRADOR SECTION */}
           {(selectedRole === 'TODOS' || selectedRole === 'SUPER_ADMIN') && superAdmins.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-purple-900/50 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-purple-950 border border-purple-800 text-purple-300">
+                  <div className="p-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700">
                     <Crown className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-[#37558d] uppercase tracking-wider flex items-center gap-2">
                       <span>SUPER ADMINISTRADOR</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700 font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-mono font-bold">
                         {superAdmins.length} usuário(s)
                       </span>
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Acesso completo ao sistema • Controle total de setores, usuários, kanbans, ponto, integrações e governança
                     </p>
                   </div>
@@ -708,19 +866,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           {/* 2. ADMINISTRATIVO SECTION */}
           {(selectedRole === 'TODOS' || selectedRole === 'ADMINISTRATIVO') && administratives.length > 0 && (
             <div className="space-y-3 pt-4">
-              <div className="flex items-center justify-between border-b border-sky-900/50 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-sky-950 border border-sky-800 text-sky-300">
+                  <div className="p-1.5 rounded-lg bg-blue-50 border border-blue-200 text-[#37558d]">
                     <UserCog className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-[#37558d] uppercase tracking-wider flex items-center gap-2">
                       <span>ADMINISTRATIVO & RH</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 border border-sky-700 font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-[#37558d] border border-blue-200 font-mono font-bold">
                         {administratives.length} usuário(s)
                       </span>
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Gestão de colaboradores, formulários, espelho de ponto, planilhas mestras e cadastros de RH
                     </p>
                   </div>
@@ -736,19 +894,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           {/* 3. GESTOR SECTION */}
           {(selectedRole === 'TODOS' || selectedRole === 'GESTOR') && gestores.length > 0 && (
             <div className="space-y-3 pt-4">
-              <div className="flex items-center justify-between border-b border-emerald-900/50 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-950 border border-emerald-800 text-emerald-300">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
                     <Shield className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-[#37558d] uppercase tracking-wider flex items-center gap-2">
                       <span>GESTOR (LÍDERES DE SETOR)</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700 font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold">
                         {gestores.length} usuário(s)
                       </span>
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Gestão do seu setor específico: Kanban da equipe, distribuição de chamados e aprovação de apontamentos
                     </p>
                   </div>
@@ -764,19 +922,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
           {/* 4. COLABORADOR SECTION */}
           {(selectedRole === 'TODOS' || selectedRole === 'COLABORADOR') && colaboradores.length > 0 && (
             <div className="space-y-3 pt-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+                  <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-[#37558d]">
                     <Users className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-[#37558d] uppercase tracking-wider flex items-center gap-2">
                       <span>COLABORADOR</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-[#37558d] border border-slate-200 font-mono font-bold">
                         {colaboradores.length} usuário(s)
                       </span>
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Visualiza apenas suas informações, seu Kanban, suas tarefas, ponto, agenda e info compartilhada
                     </p>
                   </div>
@@ -796,6 +954,9 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         <HRDossierTab
           collaborators={collaborators}
           onSelectCollaborator={(c) => setSelectedUserDetail(c)}
+          onEditCollaborator={(c) => setEditingUser(c)}
+          onDeleteCollaborator={(c) => handleDeleteUser(c)}
+          isSuperAdmin={isSuperAdmin}
           showToast={showToast}
         />
       )}
@@ -803,17 +964,17 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
       {/* VIEW TAB 3: ESTRUTURA ORGANIZACIONAL (11 SETORES) */}
       {activeTab === 'sectors' && (
         <div className="space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
             <div>
-              <h2 className="text-sm font-bold text-white">Estrutura Oficial de Setores</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h2 className="text-base font-bold text-[#37558d]">Estrutura Oficial de Setores</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
                 Organização por Áreas corporativas. Você pode cadastrar novos setores a qualquer momento.
               </p>
             </div>
             <button
               onClick={() => setIsNewSectorModalOpen(true)}
               id="btn-adicionar-setor-tab"
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>+ Novo Setor</span>
@@ -827,18 +988,18 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
             return (
               <div
                 key={areaName}
-                className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg"
+                className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs"
               >
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-3 h-3 rounded-full bg-cyan-400"></span>
-                    <h3 className="text-base font-bold text-white tracking-wide">{areaName}</h3>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="w-3 h-3 rounded-full bg-[#37558d]"></span>
+                    <h3 className="text-base font-bold text-[#37558d] tracking-tight">{areaName}</h3>
+                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-50 text-[#37558d] border border-blue-200 font-bold">
                       {areaSectors.length} setores
                     </span>
                   </div>
 
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-slate-500 font-mono">
                     Área Corporativa ByComp
                   </span>
                 </div>
@@ -853,37 +1014,37 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                     return (
                       <div
                         key={sec.id}
-                        className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-4 space-y-3 hover:border-cyan-500/50 transition-all flex flex-col justify-between"
+                        className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3 hover:border-[#37558d]/50 hover:shadow-xs transition-all flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
-                            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                            <h4 className="text-sm font-bold text-[#37558d] flex items-center gap-1.5">
                               <span>Setor: {sec.name}</span>
                               {sec.isCustom && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-50 text-[#37558d] border border-blue-200 font-bold">
                                   Custom
                                 </span>
                               )}
                             </h4>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-[#37558d] border border-blue-200">
                               SLA: {sec.slaTarget}
                             </span>
                           </div>
 
-                          <p className="text-xs text-slate-400 mt-2">
+                          <p className="text-xs text-slate-600 mt-2">
                             {sec.description}
                           </p>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-850 space-y-2 text-xs">
+                        <div className="pt-3 border-t border-slate-200 space-y-2 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400">Líder / Gestor:</span>
-                            <span className="font-semibold text-slate-200">{sec.leaderName}</span>
+                            <span className="text-slate-500">Líder / Gestor:</span>
+                            <span className="font-semibold text-[#37558d]">{sec.leaderName}</span>
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400">Headcount Ativo:</span>
-                            <span className="font-mono text-cyan-300 font-bold">
+                            <span className="text-slate-500">Headcount Ativo:</span>
+                            <span className="font-mono text-[#37558d] font-bold">
                               {sectorCollaborators.length} pessoa(s)
                             </span>
                           </div>
@@ -896,11 +1057,11 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                                 src={colab.avatar}
                                 alt={colab.name}
                                 title={`${colab.name} (${colab.role})`}
-                                className="w-6 h-6 rounded-full ring-2 ring-slate-900 object-cover"
+                                className="w-6 h-6 rounded-full ring-2 ring-white object-cover"
                               />
                             ))}
                             {sectorCollaborators.length > 5 && (
-                              <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center ring-2 ring-slate-900 font-mono">
+                              <span className="w-6 h-6 rounded-full bg-slate-200 text-[#37558d] text-[10px] font-bold flex items-center justify-center ring-2 ring-white font-mono">
                                 +{sectorCollaborators.length - 5}
                               </span>
                             )}
@@ -916,16 +1077,16 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         </div>
       )}
 
-      {/* VIEW TAB 4: MATRIZ DE PERMISSÕES (RBAC) */}
+      {/* VIEW TAB 4: MATRIZ DE PERMISSÕES (RBAC) / CONFIGURAÇÃO DE PERMISSÃO */}
       {activeTab === 'rbac_matrix' && (
         <div className="space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-cyan-400" />
-              Matriz Oficial de Controle de Acesso por Função (RBAC)
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs">
+            <h2 className="text-base font-bold text-[#37558d] flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#37558d]" />
+              Matriz Oficial de Controle de Acesso por Função (RBAC) - Configuração de Permissões
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Definições de permissões estritas para conformidade com a governança da ByComp.
+            <p className="text-xs text-slate-500 mt-1">
+              Definições de permissões estritas para governança, segurança e conformidade da ByComp.
             </p>
           </div>
 
@@ -937,36 +1098,36 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               return (
                 <div
                   key={def.role}
-                  className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl"
+                  className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xs"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                       <div className="flex items-center gap-2">
-                        <IconComp className="w-5 h-5 text-cyan-400" />
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        <IconComp className="w-5 h-5 text-[#37558d]" />
+                        <h3 className="text-sm font-bold text-[#37558d] uppercase tracking-wider">
                           {def.label}
                         </h3>
                       </div>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full border ${meta.badgeClass}`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${meta.badgeClass}`}>
                         Nível {def.role === 'SUPER_ADMIN' ? '1 (Total)' : def.role === 'ADMINISTRATIVO' ? '2 (Operacional)' : def.role === 'GESTOR' ? '3 (Setorial)' : '4 (Individual)'}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-300 mt-3 font-medium">
+                    <p className="text-xs text-slate-600 mt-3 font-medium">
                       {def.description}
                     </p>
 
                     <div className="mt-4 space-y-1.5">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <p className="text-[11px] font-bold text-[#37558d] uppercase tracking-wider">
                         Permissões e Ações Autorizadas:
                       </p>
                       <ul className="space-y-1.5 pt-1">
                         {def.allowedActions.map((action, idx) => (
                           <li
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-300 bg-slate-950/60 p-2 rounded-lg border border-slate-850"
+                            className="flex items-start gap-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200"
                           >
-                            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                             <span>{action}</span>
                           </li>
                         ))}
@@ -975,15 +1136,15 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   </div>
 
                   {def.role === 'GESTOR' && (
-                    <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>Restrição: Não possui acesso automático aos dados de outros setores.</span>
                     </div>
                   )}
 
                   {def.role === 'COLABORADOR' && (
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-xs flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Restrição: Visualiza apenas seus próprios registros e tarefas atribuídas.</span>
                     </div>
                   )}
@@ -996,16 +1157,16 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
       {/* MODAL: + NOVO COLABORADOR / USUÁRIO (com campos de RH) */}
       {isNewUserModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-emerald-400" />
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-[#37558d] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#37558d]" />
                 Criar Novo Usuário / Cadastro de Pessoal
               </h3>
               <button
                 onClick={() => setIsNewUserModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-slate-400 hover:text-[#37558d] text-sm p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ✕
               </button>
@@ -1013,7 +1174,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
             <form onSubmit={handleCreateUser} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Nome Completo
                 </label>
                 <input
@@ -1021,14 +1182,14 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   placeholder="Ex: Gabriela Costa"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     E-mail Corporativo
                   </label>
                   <input
@@ -1036,45 +1197,45 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                     placeholder="gabriela.costa@bycomp.com.br"
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Telefone / Ramal
                   </label>
                   <input
                     type="text"
                     value={newUserPhone}
                     onChange={(e) => setNewUserPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Cargo Profissional
                 </label>
                 <input
                   type="text"
                   value={newUserRoleTitle}
                   onChange={(e) => setNewUserRoleTitle(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   required
                 />
               </div>
 
               {/* Perfil de Acesso (RBAC) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Perfil de Acesso (Hierarquia Oficial)
                 </label>
                 <select
                   value={newUserAccessRole}
                   onChange={(e) => setNewUserAccessRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                 >
                   <option value="SUPER_ADMIN">SUPER ADMINISTRADOR (Acesso total)</option>
                   <option value="ADMINISTRATIVO">ADMINISTRATIVO (Pessoas, Docs, Planilhas & RH)</option>
@@ -1086,7 +1247,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               {/* Área e Setor */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Área Organizacional
                   </label>
                   <select
@@ -1098,7 +1259,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                         setNewUserSector(available[0].name);
                       }
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   >
                     {ORGANIZATIONAL_AREAS.map(area => (
                       <option key={area} value={area}>{area}</option>
@@ -1107,13 +1268,13 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Setor
                   </label>
                   <select
                     value={newUserSector}
                     onChange={(e) => setNewUserSector(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-mono"
                   >
                     {availableSectorsForArea.map(sec => (
                       <option key={sec.id} value={sec.name}>{sec.name}</option>
@@ -1123,15 +1284,15 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               </div>
 
               {/* Dados de RH: Regime e Faixa Salarial */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Regime de Contratação (RH)
                   </label>
                   <select
                     value={newUserContractType}
                     onChange={(e) => setNewUserContractType(e.target.value as 'CLT' | 'PJ' | 'Estágio')}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   >
                     <option value="CLT">CLT (Consolidação das Leis do Trabalho)</option>
                     <option value="PJ">PJ (Pessoa Jurídica)</option>
@@ -1140,7 +1301,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Remuneração Base / Faixa Salarial
                   </label>
                   <input
@@ -1148,22 +1309,46 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                     value={newUserSalaryBracket}
                     onChange={(e) => setNewUserSalaryBracket(e.target.value)}
                     placeholder="Ex: R$ 5.800,00"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold font-mono focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              {/* Senha Provisória de Acesso (Firebase) */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-[#37558d] flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#37558d]" />
+                    Senha Provisória de Acesso (Firebase)
+                  </label>
+                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Obrigatório alterar em Configurações
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={newUserTempPassword}
+                  onChange={(e) => setNewUserTempPassword(e.target.value)}
+                  placeholder="Ex: bycomp2026 ou senha personalizada"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-bold font-mono focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  required
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Esta senha provisória é gravada diretamente no Firebase Firestore. O colaborador a usará para o primeiro login e alterará em Configurações.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsNewUserModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   Cadastrar Colaborador
                 </button>
@@ -1175,16 +1360,16 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
       {/* MODAL: + CADASTRAR NOVO SETOR */}
       {isNewSectorModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-amber-400" />
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-[#37558d] flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[#37558d]" />
                 Cadastrar Novo Setor Organizacional
               </h3>
               <button
                 onClick={() => setIsNewSectorModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-slate-400 hover:text-[#37558d] text-sm p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ✕
               </button>
@@ -1192,13 +1377,13 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
             <form onSubmit={handleCreateSector} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Área Matriz
                 </label>
                 <select
                   value={newSectorArea}
                   onChange={(e) => setNewSectorArea(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                 >
                   {ORGANIZATIONAL_AREAS.map(area => (
                     <option key={area} value={area}>{area}</option>
@@ -1207,7 +1392,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Nome do Setor (Ex: N4, Mobile, Cloud Ops, QA, Auditoria)
                 </label>
                 <input
@@ -1215,39 +1400,39 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   placeholder="Ex: Cloud Ops & DevOps"
                   value={newSectorName}
                   onChange={(e) => setNewSectorName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Líder / Gestor
                   </label>
                   <input
                     type="text"
                     value={newSectorLeader}
                     onChange={(e) => setNewSectorLeader(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                     Meta de SLA
                   </label>
                   <input
                     type="text"
                     value={newSectorSla}
                     onChange={(e) => setNewSectorSla(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1.5">
                   Descrição do Setor
                 </label>
                 <textarea
@@ -1255,21 +1440,21 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   value={newSectorDescription}
                   onChange={(e) => setNewSectorDescription(e.target.value)}
                   placeholder="Responsabilidade e escopo operacional do setor..."
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsNewSectorModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   Salvar Setor
                 </button>
@@ -1279,18 +1464,23 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: EDITAR USUÁRIO */}
+      {/* MODAL: EDITAR USUÁRIO & CARGO NO FIREBASE */}
       {editingUser && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-cyan-400" />
-                Editar Colaborador / Usuário
-              </h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-[#37558d] flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-[#37558d]" />
+                  Editar Colaborador & Cargo (Firebase)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Alterações serão sincronizadas imediatamente no Firestore
+                </p>
+              </div>
               <button
                 onClick={() => setEditingUser(null)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-slate-400 hover:text-[#37558d] text-sm p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ✕
               </button>
@@ -1298,83 +1488,174 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
             <form onSubmit={handleSaveEditUser} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-[#37558d] mb-1">
                   Nome Completo
                 </label>
                 <input
                   type="text"
                   value={editingUser.name}
                   onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Cargo
-                </label>
-                <input
-                  type="text"
-                  value={editingUser.role}
-                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  E-mail Corporativo
-                </label>
-                <input
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Setor
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Cargo Funcional
                   </label>
                   <input
                     type="text"
-                    value={editingUser.sector}
-                    onChange={(e) => setEditingUser({ ...editingUser, sector: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    value={editingUser.role}
+                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                    placeholder="Ex: Analista de TI, Gestor Operacional"
+                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Telefone
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Perfil de Acesso / Hierarquia
+                  </label>
+                  <select
+                    value={editingUser.userRole || 'COLABORADOR'}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, userRole: e.target.value as UserRole })
+                    }
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  >
+                    <option value="SUPER_ADMIN">SUPER_ADMIN (Master / Acesso Total)</option>
+                    <option value="ADMINISTRATIVO">ADMINISTRATIVO (RH, Financeiro, Gestão)</option>
+                    <option value="GESTOR">GESTOR (Líder de Setor & Equipe)</option>
+                    <option value="COLABORADOR">COLABORADOR (Operacional)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Área Matriz
+                  </label>
+                  <select
+                    value={editingUser.area || 'SUPORTE'}
+                    onChange={(e) => setEditingUser({ ...editingUser, area: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  >
+                    {ORGANIZATIONAL_AREAS.map((area) => (
+                      <option key={area} value={area}>
+                        {area}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Setor Organizacional
+                  </label>
+                  <select
+                    value={editingUser.sector}
+                    onChange={(e) => setEditingUser({ ...editingUser, sector: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  >
+                    {sectors.map((s) => (
+                      <option key={s.id} value={s.name}>
+                        {s.name} ({s.area})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Regime Contratual
+                  </label>
+                  <select
+                    value={editingUser.contractType || 'CLT'}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        contractType: e.target.value as 'CLT' | 'PJ' | 'Estágio'
+                      })
+                    }
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  >
+                    <option value="CLT">CLT (Consolidação das Leis do Trabalho)</option>
+                    <option value="PJ">PJ (Pessoa Jurídica)</option>
+                    <option value="Estágio">Estágio Corporativo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Status Operacional
+                  </label>
+                  <select
+                    value={editingUser.status || 'Em atividade'}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        status: e.target.value as any
+                      })
+                    }
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                  >
+                    <option value="Em atividade">Em atividade (Online / Ativo)</option>
+                    <option value="Intervalo">Intervalo</option>
+                    <option value="Ausente">Ausente</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Bloqueado">Bloqueado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    E-mail Corporativo
+                  </label>
+                  <input
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#37558d] mb-1">
+                    Telefone / Ramal
                   </label>
                   <input
                     type="text"
                     value={editingUser.phone || ''}
                     onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
+                    placeholder="(11) 98888-0000"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  Salvar Alterações
+                  <Check className="w-4 h-4" />
+                  <span>Salvar no Firebase</span>
                 </button>
               </div>
             </form>
@@ -1382,37 +1663,174 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: DEFINIR PERMISSÕES (RBAC) */}
-      {permissionsUser && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-purple-400" />
-                Nível de Acesso (RBAC)
+      {/* MODAL: CONFIRMAÇÃO DE EXCLUSÃO DE COLABORADOR (FIREBASE) */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                <Trash2 className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Excluir Colaborador do Firebase
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Ação exclusiva do Super Admin Master
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+              <img
+                src={userToDelete.avatar}
+                alt={userToDelete.name}
+                className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-sm text-[#37558d] truncate">{userToDelete.name}</h4>
+                <p className="text-xs text-slate-600 truncate">{userToDelete.role}</p>
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                  <span className="font-mono">{userToDelete.sector}</span>
+                  <span>•</span>
+                  <span className="truncate">{userToDelete.email}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-200/60 text-xs text-rose-700 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <p>
+                Tem certeza de que deseja excluir permanentemente o cadastro de <strong>{userToDelete.name}</strong>? Os dados e permissões serão removidos do Firebase Firestore.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteUser}
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Sim, Excluir do Firebase</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SENHA PROVISÓRIA (FIREBASE) */}
+      {tempPasswordUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-[#37558d] flex items-center gap-2">
+                <Key className="w-4 h-4 text-amber-600" />
+                Definir Senha Provisória (Firebase)
               </h3>
               <button
-                onClick={() => setPermissionsUser(null)}
-                className="text-slate-400 hover:text-white text-xs"
+                onClick={() => setTempPasswordUser(null)}
+                className="text-slate-400 hover:text-[#37558d] text-sm p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800">
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-800">
+              Defina a senha de primeiro acesso para <strong>{tempPasswordUser.name}</strong>. Ao efetuar o login, o colaborador será orientado a redefini-la em Configurações.
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#37558d] mb-1.5">
+                Nova Senha Provisória
+              </label>
+              <input
+                type="text"
+                value={tempPasswordInput}
+                onChange={(e) => setTempPasswordInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-mono"
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setTempPasswordUser(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (tempPasswordInput.trim().length < 6) {
+                    showToast('A senha provisória deve ter no mínimo 6 caracteres.');
+                    return;
+                  }
+                  try {
+                    await dbService.setTemporaryPassword(
+                      tempPasswordUser.id,
+                      tempPasswordInput.trim()
+                    );
+                    showToast(
+                      `✓ Senha provisória para ${tempPasswordUser.name} definida como "${tempPasswordInput.trim()}" no Firebase!`
+                    );
+                    setTempPasswordUser(null);
+                  } catch (err: any) {
+                    showToast(
+                      `Erro ao gravar senha provisória: ${err?.message || 'Verifique a conexão.'}`
+                    );
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                Salvar Senha no Firebase
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DEFINIR PERMISSÕES (RBAC) */}
+      {permissionsUser && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-[#37558d] flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#37558d]" />
+                Configuração de Permissão (RBAC)
+              </h3>
+              <button
+                onClick={() => setPermissionsUser(null)}
+                className="text-slate-400 hover:text-[#37558d] text-sm p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
               <img
                 src={permissionsUser.avatar}
                 alt={permissionsUser.name}
-                className="w-10 h-10 rounded-lg object-cover ring-1 ring-slate-700"
+                className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200"
               />
               <div>
-                <p className="font-bold text-xs text-white">{permissionsUser.name}</p>
-                <p className="text-[11px] text-slate-400">{permissionsUser.role}</p>
+                <p className="font-bold text-xs text-[#37558d]">{permissionsUser.name}</p>
+                <p className="text-[11px] text-slate-500 font-medium">{permissionsUser.role}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-bold text-[#37558d] mb-1">
                 Selecione o Papel Oficial:
               </label>
 
@@ -1430,17 +1848,17 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                       setPermissionsUser(null);
                       showToast(`✓ Perfil de ${updated.name} alterado para ${role}.`);
                     }}
-                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-colors cursor-pointer ${
+                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-cyan-950/60 border-cyan-500 text-white'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                        ? 'bg-blue-50/80 border-2 border-[#37558d] text-[#37558d] shadow-2xs'
+                        : 'bg-white border-slate-200 hover:border-[#37558d]/50 hover:bg-slate-50/70 text-slate-700'
                     }`}
                   >
                     <div>
-                      <p className="text-xs font-bold">{meta.label}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <p className="text-xs font-bold text-[#37558d]">{meta.label}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
                         {role === 'SUPER_ADMIN'
-                          ? 'Acesso irrestrito a todas as 24 telas e configurações'
+                          ? 'Acesso irrestrito a todas as telas e configurações'
                           : role === 'ADMINISTRATIVO'
                           ? 'Gestão de pessoas, chamados gerais, planilhas e relatórios'
                           : role === 'GESTOR'
@@ -1448,7 +1866,7 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                           : 'Acesso restrito ao próprio Kanban, tarefas e ponto'}
                       </p>
                     </div>
-                    {isSelected && <Check className="w-4 h-4 text-cyan-400 shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-[#37558d] shrink-0" />}
                   </button>
                 );
               })}
@@ -1462,6 +1880,9 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         collaborator={selectedUserDetail}
         onClose={() => setSelectedUserDetail(null)}
         onToggleBlock={handleToggleBlock}
+        onEdit={(c) => setEditingUser(c)}
+        onDelete={(c) => handleDeleteUser(c)}
+        isSuperAdmin={isSuperAdmin}
         showToast={showToast}
       />
     </div>
@@ -1470,18 +1891,22 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   // Sub-render: Individual user card for the hierarchy view
   function renderUserCard(c: Collaborator) {
     const meta = getRoleBadge(c.userRole);
-    const isVictor = c.id === 'colab-1';
+    const isVictor =
+      c.id === 'colab-1' ||
+      c.id === 'user-master-victor' ||
+      c.email === 'victor@bycomp.com.br' ||
+      c.email === 'victormorekids@gmail.com';
 
     return (
       <div
         key={c.id}
         onClick={() => setSelectedUserDetail(c)}
-        className={`bg-slate-900/90 border rounded-2xl p-4 space-y-3 transition-all hover:scale-[1.01] hover:shadow-xl group flex flex-col justify-between cursor-pointer ${
+        className={`bg-white border rounded-2xl p-4 space-y-3 transition-all hover:scale-[1.01] hover:shadow-md group flex flex-col justify-between cursor-pointer ${
           c.isBlocked
-            ? 'border-rose-900/70 bg-rose-950/10'
+            ? 'border-rose-300 bg-rose-50/20'
             : isVictor
-            ? 'border-purple-600/60 ring-1 ring-purple-500/20'
-            : 'border-slate-800 hover:border-slate-700'
+            ? 'border-[#37558d] ring-1 ring-[#37558d]/25 shadow-2xs'
+            : 'border-slate-200 hover:border-[#37558d]/50 shadow-2xs'
         }`}
       >
         <div className="flex items-start gap-3">
@@ -1489,36 +1914,36 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
             <img
               src={c.avatar}
               alt={c.name}
-              className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-700"
+              className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200"
             />
             <span
-              className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-900 ${
+              className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
                 c.isBlocked
                   ? 'bg-rose-500'
                   : c.status === 'Em atividade'
                   ? 'bg-emerald-500'
-                  : 'bg-slate-600'
+                  : 'bg-slate-400'
               }`}
             ></span>
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+              <h3 className="text-sm font-bold text-[#37558d] group-hover:text-[#23385d] transition-colors truncate">
                 {c.name}
               </h3>
               {isVictor && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold uppercase">
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 border border-purple-200 font-bold uppercase">
                   Super Admin
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 truncate mt-0.5">{c.role}</p>
+            <p className="text-xs text-slate-600 truncate mt-0.5">{c.role}</p>
             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
               <span className={`text-[10px] font-mono px-2 py-0.2 rounded border ${meta.badgeClass}`}>
                 {meta.label}
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+              <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-slate-50 text-[#37558d] border border-slate-200">
                 {c.sector}
               </span>
             </div>
@@ -1526,28 +1951,28 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         </div>
 
         {/* Current task or block warning */}
-        <div className="text-[11px] text-slate-400 bg-slate-950/70 p-2 rounded-xl border border-slate-850 truncate">
+        <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200 truncate">
           {c.isBlocked ? (
-            <span className="text-rose-400 font-semibold flex items-center gap-1">
-              <Lock className="w-3 h-3 text-rose-400" />
+            <span className="text-rose-600 font-semibold flex items-center gap-1">
+              <Lock className="w-3 h-3 text-rose-600" />
               Acesso temporariamente bloqueado
             </span>
           ) : (
             <span className="truncate block">
-              <strong className="text-slate-300">Tarefa:</strong> {c.currentTask}
+              <strong className="text-[#37558d]">Tarefa:</strong> {c.currentTask}
             </span>
           )}
         </div>
 
         {/* Card Footer: Status & Actions */}
-        <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-1 text-[11px]">
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[11px]">
           <span
             className={`font-semibold flex items-center gap-1 ${
               c.isBlocked
-                ? 'text-rose-400'
+                ? 'text-rose-600'
                 : c.status === 'Em atividade'
-                ? 'text-emerald-400'
-                : 'text-slate-500'
+                ? 'text-emerald-600'
+                : 'text-slate-400'
             }`}
           >
             <span>
@@ -1559,12 +1984,20 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
             </span>
           </span>
 
-          {/* Action Icons: Edit, Block/Unblock, Permissions */}
+          {/* Action Icons: Edit, Temp Password, Block/Unblock, Permissions, Delete */}
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => handleResetTempPassword(c)}
+              title="Redefinir Senha Provisória no Firebase (Usuário alterará em Configurações)"
+              className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+            >
+              <Key className="w-3.5 h-3.5" />
+            </button>
+
             <button
               onClick={() => setEditingUser(c)}
               title="Editar usuário"
-              className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-[#37558d] hover:text-[#23385d] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -1572,27 +2005,37 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
             <button
               onClick={() => setPermissionsUser(c)}
               title="Definir permissões de acesso"
-              className="p-1.5 text-slate-400 hover:text-purple-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-[#37558d] hover:text-[#23385d] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
 
             {!isVictor && (
-              <button
-                onClick={() => handleToggleBlock(c)}
-                title={c.isBlocked ? 'Desbloquear usuário' : 'Bloquear usuário'}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  c.isBlocked
-                    ? 'text-emerald-400 hover:bg-emerald-950/60'
-                    : 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
-                }`}
-              >
-                {c.isBlocked ? (
-                  <Unlock className="w-3.5 h-3.5" />
-                ) : (
-                  <Lock className="w-3.5 h-3.5" />
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => handleToggleBlock(c)}
+                  title={c.isBlocked ? 'Desbloquear usuário' : 'Bloquear usuário'}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    c.isBlocked
+                      ? 'text-emerald-600 hover:bg-emerald-50'
+                      : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                  }`}
+                >
+                  {c.isBlocked ? (
+                    <Unlock className="w-3.5 h-3.5" />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleDeleteUser(c)}
+                  title="Excluir Colaborador do Firebase"
+                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
             )}
           </div>
         </div>

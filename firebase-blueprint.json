@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Colaborador ou usuário corporativo do sistema ByComp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador único do usuário" },
+        "name": { "type": "string", "description": "Nome completo do colaborador" },
+        "email": { "type": "string", "description": "E-mail corporativo institucional" },
+        "role": { "type": "string", "description": "Cargo ou função" },
+        "userRole": { "type": "string", "enum": ["SUPER_ADMIN", "ADMINISTRATIVO", "GESTOR", "COLABORADOR"], "description": "Papel RBAC" },
+        "sector": { "type": "string", "description": "Setor organizacional" },
+        "area": { "type": "string", "description": "Área corporativa" },
+        "avatar": { "type": "string", "description": "URL do avatar do usuário" },
+        "phone": { "type": "string", "description": "Telefone de contato" },
+        "admissionDate": { "type": "string", "description": "Data de admissão" },
+        "status": { "type": "string", "enum": ["Em atividade", "Intervalo", "Ausente", "Férias", "Bloqueado"], "description": "Status de atividade" },
+        "currentTask": { "type": "string", "description": "Atividade corrente" },
+        "facialData": {
+          "type": "object",
+          "description": "Dados da biometria facial cadastrada para registro de ponto"
+        },
+        "createdAt": { "type": "string", "description": "Data de criação ISO" },
+        "updatedAt": { "type": "string", "description": "Data de atualização ISO" }
+      },
+      "required": ["id", "name", "email", "userRole"]
+    },
+    "Sector": {
+      "title": "Sector",
+      "description": "Setor organizacional da ByComp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador do setor" },
+        "name": { "type": "string", "description": "Nome do setor" },
+        "area": { "type": "string", "description": "Área macro" },
+        "leaderName": { "type": "string", "description": "Líder responsável" },
+        "collaboratorsCount": { "type": "number", "description": "Quantidade de colaboradores" },
+        "description": { "type": "string", "description": "Descrição das atribuições" },
+        "slaTarget": { "type": "string", "description": "Meta de SLA" }
+      },
+      "required": ["id", "name", "area"]
+    },
+    "PontoRecord": {
+      "title": "PontoRecord",
+      "description": "Registro eletrônico de ponto com foto biométrica facial e geolocalização",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador do registro de ponto" },
+        "nsr": { "type": "string", "description": "Número Sequencial de Registro (Portaria 671 MTE)" },
+        "type": { "type": "string", "enum": ["ENTRADA", "INÍCIO DO INTERVALO", "RETORNO", "SAÍDA"], "description": "Tipo de batida" },
+        "time": { "type": "string", "description": "Horário formatado HH:mm:ss" },
+        "date": { "type": "string", "description": "Data formatada YYYY-MM-DD" },
+        "timestamp": { "type": "number", "description": "Timestamp Unix da batida" },
+        "collaboratorId": { "type": "string", "description": "ID do colaborador" },
+        "collaboratorName": { "type": "string", "description": "Nome do colaborador" },
+        "collaboratorSector": { "type": "string", "description": "Setor do colaborador" },
+        "photoUrl": { "type": "string", "description": "Foto capturada na biometria facial" },
+        "biometricMatchConfidence": { "type": "number", "description": "Grau de confiança da biometria facial (%)" },
+        "deviceType": { "type": "string", "description": "Dispositivo utilizado" },
+        "ipAddress": { "type": "string", "description": "Endereço IP público" },
+        "location": { "type": "object", "description": "Geolocalização capturada" },
+        "sha256Hash": { "type": "string", "description": "Assinatura digital criptográfica SHA-256 do comprovante" }
+      },
+      "required": ["id", "type", "date", "time", "collaboratorId", "collaboratorName"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Configurações corporativas do sistema e parâmetros de banco de dados",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Chave de configuração" },
+        "companyName": { "type": "string", "description": "Nome da empresa" },
+        "facialTolerancePercent": { "type": "number", "description": "Tolerância mínima facial" },
+        "postgresMigrationStatus": { "type": "string", "description": "Status da migração para PostgreSQL" },
+        "updatedAt": { "type": "string", "description": "Última atualização" }
+      },
+      "required": ["id"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Chamado de suporte Help Desk validado e persistido no Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador do chamado (ex: CHM-2026-001)" },
+        "title": { "type": "string", "description": "Título descritivo do chamado" },
+        "description": { "type": "string", "description": "Descrição detalhada do incidente ou solicitação" },
+        "priority": { "type": "string", "enum": ["Alta", "Média", "Baixa", "Crítica"], "description": "Prioridade" },
+        "status": { "type": "string", "enum": ["Aberto", "Em atendimento", "Finalizado", "Transferido", "Pendente"], "description": "Status" },
+        "sector": { "type": "string", "description": "Setor responsável" },
+        "requester": { "type": "string", "description": "Nome do solicitante" },
+        "requesterEmail": { "type": "string", "description": "E-mail do solicitante" },
+        "assignedTo": { "type": "string", "description": "Técnico ou colaborador atribuído" },
+        "sla": { "type": "string", "description": "SLA do chamado" },
+        "category": { "type": "string", "description": "Categoria do chamado" },
+        "createdAt": { "type": "string", "description": "Data e hora de criação" },
+        "updatedAt": { "type": "string", "description": "Data e hora da última atualização" }
+      },
+      "required": ["id", "title", "priority", "status", "sector", "requester"]
+    },
+    "KanbanTask": {
+      "title": "KanbanTask",
+      "description": "Tarefa Kanban sincronizada em tempo real",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador da tarefa" },
+        "title": { "type": "string", "description": "Título da tarefa" },
+        "description": { "type": "string", "description": "Descrição" },
+        "status": { "type": "string", "enum": ["BACKLOG", "A_FAZER", "EM_ANDAMENTO", "EM_REVISAO", "CONCLUIDO"], "description": "Coluna do status" },
+        "priority": { "type": "string", "enum": ["Alta", "Média", "Baixa", "Urgente"], "description": "Prioridade" },
+        "assigneeName": { "type": "string", "description": "Responsável pela tarefa" },
+        "sector": { "type": "string", "description": "Setor de execução" },
+        "dueDate": { "type": "string", "description": "Prazo" },
+        "createdAt": { "type": "string", "description": "Data de criação" }
+      },
+      "required": ["id", "title", "status", "priority"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Apontamento de atividade operacional corporativa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador da atividade" },
+        "collaborator": { "type": "string", "description": "Nome do colaborador" },
+        "sector": { "type": "string", "description": "Setor de execução" },
+        "date": { "type": "string", "description": "Data da atividade YYYY-MM-DD" },
+        "activity": { "type": "string", "description": "Título ou resumo" },
+        "description": { "type": "string", "description": "Detalhamento técnico" },
+        "timeSpent": { "type": "string", "description": "Tempo investido" },
+        "priority": { "type": "string", "description": "Prioridade" },
+        "status": { "type": "string", "description": "Status" }
+      },
+      "required": ["id", "collaborator", "sector", "date", "activity"]
+    },
+    "FormSubmission": {
+      "title": "FormSubmission",
+      "description": "Resposta a formulário corporativo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador do registro" },
+        "formId": { "type": "string", "description": "ID do formulário" },
+        "formTitle": { "type": "string", "description": "Título do formulário" },
+        "author": { "type": "string", "description": "Autor da submissão" },
+        "submittedAt": { "type": "string", "description": "Timestamp ISO" },
+        "data": { "type": "object", "description": "Dados preenchidos" }
+      },
+      "required": ["id", "formId", "author"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Perfis de usuários, credenciais e biometria facial"
+    },
+    "/sectors/{sectorId}": {
+      "schema": "Sector",
+      "description": "Setores e áreas organizacionais"
+    },
+    "/ponto_records/{recordId}": {
+      "schema": "PontoRecord",
+      "description": "Batidas de ponto eletrônico com foto facial e geolocalização"
+    },
+    "/tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Chamados de Help Desk com validação e histórico"
+    },
+    "/tasks/{taskId}": {
+      "schema": "KanbanTask",
+      "description": "Tarefas operacionais de Meu Kanban e Kanban da Equipe"
+    },
+    "/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "Base de atividades e apontamento de rotinas operacionais"
+    },
+    "/weekly_plans/{planId}": {
+      "schema": "WeeklyPlan",
+      "description": "Planejamento semanal de sprints e metas operacionais"
+    },
+    "/form_submissions/{submissionId}": {
+      "schema": "FormSubmission",
+      "description": "Submissões registradas nos formulários corporativos"
+    },
+    "/system_settings/{settingId}": {
+      "schema": "SystemSetting",
+      "description": "Configurações globais e esquemas de migração relacional"
+    }
+  }
+}

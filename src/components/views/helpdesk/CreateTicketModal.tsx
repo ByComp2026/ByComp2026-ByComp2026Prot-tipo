@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { SupportTicket, Sector, Priority, Collaborator } from '../../../types';
 import { activitySyncService } from '../../../services/activitySyncService';
+import { ticketService } from '../../../services/ticketService';
 
 interface CreateTicketModalProps {
   isOpen?: boolean;
@@ -94,7 +95,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
   if (isOpen === false) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim()) {
       setError('Por favor, informe o assunto / título do chamado.');
@@ -109,24 +110,38 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
     setError(null);
 
     try {
-      const newTicket = activitySyncService.createTicket({
-        client: client.trim(),
+      // Validate and persist directly in Firebase Firestore
+      const newTicket = await ticketService.createTicket({
         subject: subject.trim(),
+        title: subject.trim(),
+        client: client.trim(),
+        requester: client.trim(),
+        requesterEmail: currentUser.email || 'colaborador@bycomp.com.br',
         sector,
         priority,
+        category: serviceType,
         serviceType,
         description: description.trim() || undefined,
-        assignToMe,
-        currentUser
+        assignedTo: assignToMe ? (currentUser.name || 'Victor Estevão') : undefined,
+        assignedAvatar: assignToMe ? currentUser.avatar : undefined,
+        status: assignToMe ? 'Em atendimento' : 'Aberto',
+        tags: [sector, priority]
       });
+
+      // Synchronize with local state
+      try {
+        activitySyncService.addTicket(newTicket);
+      } catch (errSync) {
+        console.warn('Local sync notice:', errSync);
+      }
 
       onSuccess(
         newTicket,
-        `✓ Chamado ${newTicket.id} criado com sucesso na fila [${newTicket.sector}]!`
+        `✓ Chamado ${newTicket.id} validado e gravado no Firebase Firestore com sucesso na fila [${newTicket.sector}]!`
       );
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao criar chamado.';
+      const msg = err instanceof Error ? err.message : 'Erro ao criar chamado no Firebase.';
       setError(msg);
       setIsSubmitting(false);
     }

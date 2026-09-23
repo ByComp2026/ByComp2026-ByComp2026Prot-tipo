@@ -171,16 +171,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             id="sidebar-brand-logo"
             title="ByComp - enable the future"
           >
-            <div className="bg-white px-2.5 py-1 rounded-xl shadow-xs border border-white/60">
+            <div>
               <img 
                 src="/bycomp-logo.svg" 
                 alt="ByComp" 
-                className="h-6.5 max-w-[150px] w-auto object-contain group-hover:scale-105 transition-transform" 
+                className="h-7.5 max-w-[300px] w-auto object-contain group-hover:scale-105 transition-transform" 
               />
+              <h1>
+              Enable The Future
+              </h1>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#e8ba9d]/40 text-[#92400e] border border-[#e8ba9d] shrink-0">
-              PROTÓTIPO
-            </span>
           </div>
 
           {/* Close button on mobile phones & tablets */}
@@ -191,23 +191,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-label="Fechar menu lateral"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Presentation Fast Launcher Banner */}
-        <div className="px-3 pt-3">
-          <button
-            onClick={handleOpenNav}
-            id="sidebar-quick-jump-btn"
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#334b84] hover:bg-[#37558d] text-white text-xs font-bold shadow-xs group transition-all cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-[#8ad0da] group-hover:text-white animate-pulse" />
-              <span className="text-white font-bold">Navegador de Telas (22)</span>
-            </span>
-            <span className="hidden sm:inline text-[10px] font-mono bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/30">
-              Ctrl+K
-            </span>
           </button>
         </div>
 

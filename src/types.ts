@@ -153,6 +153,7 @@ export interface SupportTicket {
   id: string;
   client: string;
   subject: string;
+  title?: string;
   sector: Sector;
   assignedTo?: string;
   assignedAvatar?: string;
@@ -160,6 +161,11 @@ export interface SupportTicket {
   status: 'Aberto' | 'Em atendimento' | 'Aguardando' | 'Resolvido';
   openTime: string;
   serviceType?: string;
+  category?: string;
+  requester?: string;
+  requesterEmail?: string;
+  sla?: string;
+  tags?: string[];
   resolutionSummary?: string;
   knowledgeBaseId?: string;
   resolvedAt?: string;
@@ -170,6 +176,8 @@ export interface SupportTicket {
   description?: string;
   contactEmail?: string;
   slaLimitHours?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface KnowledgeArticle {

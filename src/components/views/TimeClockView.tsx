@@ -366,21 +366,21 @@ export const TimeClockView: React.FC<TimeClockViewProps> = ({
               <div className="text-left">
                 <div className="flex items-center gap-2">
                   <span className="text-sm sm:text-base font-black text-white tracking-tight">
-                    Bater Ponto por Reconhecimento Facial
+                    Bater Ponto por Reconhecimento Facial Automático
                   </span>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700">
                     Próximo: {getNextRecommendedPunch()}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Abre a câmera do dispositivo ({deviceInfo.category}) para biometria facial e captura de GPS
+                  Reconhece a biometria cadastrada no banco de dados e bate o ponto automaticamente sem precisar de clique
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 group-hover:bg-cyan-400 text-slate-950 font-extrabold text-xs shadow-md shrink-0">
               <Scan className="w-4 h-4" />
-              <span>Abrir Câmera</span>
+              <span>Abrir Câmera (Automático)</span>
             </div>
           </button>
         </div>

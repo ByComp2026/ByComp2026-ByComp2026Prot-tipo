@@ -18,29 +18,55 @@ export const BycompIcon: React.FC<BycompIconProps> = ({
       xmlns="http://www.w3.org/2000/svg"
       aria-label="ByComp Icon"
     >
+      <defs>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@900&display=swap');
+          .bycomp-font {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          }
+        `}</style>
+      </defs>
+
       <rect width="100" height="100" rx="22" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-      {/* Intertwined B and C / y mark from the logo */}
+      
+      {/* C */}
       <text
-        x="12"
-        y="74"
-        fill="#5f80c2"
-        fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
-        fontSize="68"
+        x="36"
+        y="72"
+        fontSize="64"
         fontWeight="900"
-      >
-        B
-      </text>
-      <text
-        x="42"
-        y="74"
-        fill="#3fb5c5"
-        fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
-        fontSize="68"
-        fontWeight="900"
+        fill="#2eb4be"
+        className="bycomp-font"
       >
         C
       </text>
-      <circle cx="74" cy="50" r="13" fill="#f37a2b" />
+
+      {/* B */}
+      <text
+        x="6"
+        y="72"
+        fontSize="64"
+        fontWeight="900"
+        fill="#5c7cb8"
+        className="bycomp-font"
+      >
+        B
+      </text>
+
+      {/* y */}
+      <text
+        x="20"
+        y="72"
+        fontSize="64"
+        fontWeight="900"
+        fill="#223c6f"
+        className="bycomp-font"
+      >
+        y
+      </text>
+
+      {/* Detalhe circular */}
+      <circle cx="78" cy="46" r="9" fill="#f57f20" />
     </svg>
   );
 };

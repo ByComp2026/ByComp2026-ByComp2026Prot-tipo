@@ -102,30 +102,29 @@ export const PrivateAccessLock: React.FC<PrivateAccessLockProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 animate-in fade-in zoom-in-95 duration-300">
-      <div className="bg-slate-900 border border-rose-900/60 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
         {/* Subtle Background Glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
         {/* Header with Lock Icon */}
         <div className="flex flex-col items-center text-center space-y-4 relative z-10">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-rose-950/80 border-2 border-rose-700/80 flex items-center justify-center text-rose-400 shadow-xl shadow-rose-950/60">
+            <div className="w-20 h-20 rounded-2xl bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-600 shadow-xs">
               <Lock className="w-10 h-10 animate-pulse" />
             </div>
-            <div className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-slate-900 border border-rose-600 text-rose-300">
+            <div className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 shadow-xs">
               <ShieldAlert className="w-4 h-4" />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-bold tracking-wide">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold tracking-wide">
               <span>{effectiveBadge}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#37558d] tracking-tight">
               {effectiveTitle}
             </h1>
-            <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+            <p className="text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
               {effectiveDescription}
             </p>
           </div>
@@ -134,144 +133,54 @@ export const PrivateAccessLock: React.FC<PrivateAccessLockProps> = ({
         {/* Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 relative z-10">
           {/* Current User Card */}
-          <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
+          <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3">
             <img
               src={currentUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
               alt={currentUser?.name || 'Usuário'}
-              className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-700"
+              className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white truncate">
+                <span className="text-xs font-bold text-[#37558d] truncate">
                   {currentUser?.name || 'Colaborador Autenticado'}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-[#37558d] border border-blue-200 font-bold">
                   {currentUser?.userRole || 'COLABORADOR'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">{currentUser?.role || 'Analista'}</p>
-              <p className="text-[10px] text-rose-400 mt-1 font-semibold flex items-center gap-1">
+              <p className="text-[11px] text-slate-500 truncate">{currentUser?.role || 'Analista'}</p>
+              <p className="text-[10px] text-rose-600 mt-1 font-semibold flex items-center gap-1">
                 <span>{effectiveUserRestriction}</span>
               </p>
             </div>
           </div>
 
           {/* Privacy Notice Card */}
-          <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-center text-xs text-slate-300 space-y-1.5">
-            <div className="flex items-center gap-2 text-rose-400 font-bold">
+          <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex flex-col justify-center text-xs text-slate-600 space-y-1.5">
+            <div className="flex items-center gap-2 text-rose-600 font-bold">
               <ShieldCheck className="w-4 h-4" />
               <span>{effectiveWhyTitle}</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
               {effectiveWhyDescription}
             </p>
           </div>
         </div>
 
-        {/* Authorized Roles Fast Simulation */}
-        <div className="border-t border-slate-800 pt-6 relative z-10 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-cyan-400" />
-              Simular Acesso Autorizado (Ambiente Executivo)
-            </span>
-            <span className="text-[11px] text-slate-500 font-mono">
-              Clique para testar com perfis permitidos
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Helena Santos (RH) */}
-            {helenaAccount && (
-              <button
-                onClick={() => handleSimulateUser(helenaAccount)}
-                className="p-3 rounded-xl bg-sky-950/60 hover:bg-sky-900/80 border border-sky-800/80 hover:border-sky-500 text-left transition-all group cursor-pointer shadow-sm"
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="p-1 rounded-lg bg-sky-900 text-sky-300">
-                    <UserCog className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-300">
-                    Administração & RH
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-white group-hover:text-sky-200 truncate">
-                  {helenaAccount.name}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate">{helenaAccount.roleLabel}</p>
-                <div className="flex items-center gap-1 text-[10px] text-sky-400 font-semibold mt-2 group-hover:translate-x-0.5 transition-transform">
-                  <span>Acessar tela privada</span>
-                  <ArrowRight className="w-3 h-3" />
-                </div>
-              </button>
-            )}
-
-            {/* Victor Estevão (Super Admin) */}
-            {victorAccount && (
-              <button
-                onClick={() => handleSimulateUser(victorAccount)}
-                className="p-3 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/80 hover:border-purple-500 text-left transition-all group cursor-pointer shadow-sm"
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="p-1 rounded-lg bg-purple-900 text-purple-300">
-                    <Crown className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">
-                    Super Admin
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-white group-hover:text-purple-200 truncate">
-                  {victorAccount.name}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate">{victorAccount.roleLabel}</p>
-                <div className="flex items-center gap-1 text-[10px] text-purple-400 font-semibold mt-2 group-hover:translate-x-0.5 transition-transform">
-                  <span>Acessar tela privada</span>
-                  <ArrowRight className="w-3 h-3" />
-                </div>
-              </button>
-            )}
-
-            {/* Carlos Eduardo (Gestão TI) */}
-            {carlosAccount && (
-              <button
-                onClick={() => handleSimulateUser(carlosAccount)}
-                className="p-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/80 hover:border-emerald-500 text-left transition-all group cursor-pointer shadow-sm"
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="p-1 rounded-lg bg-emerald-900 text-emerald-300">
-                    <Shield className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                    Gestão TI (Líder N3)
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-white group-hover:text-emerald-200 truncate">
-                  {carlosAccount.name}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate">{carlosAccount.roleLabel}</p>
-                <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold mt-2 group-hover:translate-x-0.5 transition-transform">
-                  <span>Acessar tela privada</span>
-                  <ArrowRight className="w-3 h-3" />
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Footer actions */}
-        <div className="mt-8 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 relative z-10">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span>Trilha de auditoria registrada: tentativa de acesso não-autorizado à Fase {phaseNumber} com perfil COLABORADOR</span>
+            <span>Acesso reservado exclusivamente à linha de comando e administração.</span>
           </div>
 
           {onNavigate && (
             <button
               onClick={() => onNavigate('dashboard')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#37558d] hover:bg-[#2c4471] text-white text-xs font-semibold transition-all cursor-pointer shadow-xs"
             >
-              <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-              <span>Voltar ao Dashboard Executivo</span>
+              <LayoutDashboard className="w-4 h-4 text-white" />
+              <span>Voltar ao Início</span>
             </button>
           )}
         </div>

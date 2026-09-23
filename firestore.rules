@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Test collection for boot connectivity check
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Users and Master Profile (including facial biometry)
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Deleted Users Tombstones (persistent deletion)
+    match /deleted_users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Organizational Sectors
+    match /sectors/{sectorId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Ponto Records (Facial clock punches with GPS and SHA-256 hash)
+    match /ponto_records/{recordId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Help Desk Tickets (Chamados)
+    match /tickets/{ticketId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Kanban Tasks (Meu Kanban & Kanban da Equipe)
+    match /tasks/{taskId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Activities (Base de Atividades & Apontamento de Horas)
+    match /activities/{activityId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Weekly Planning (Planejamento Semanal Operacional)
+    match /weekly_plans/{planId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Form Submissions (Formulários & Banco)
+    match /form_submissions/{submissionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Google Workspace Integrations
+    match /workspace_integrations/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // System Settings & Database Migration Metadata
+    match /system_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Fallback match
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
