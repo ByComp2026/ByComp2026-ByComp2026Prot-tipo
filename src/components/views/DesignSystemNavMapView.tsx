@@ -94,9 +94,7 @@ export const DesignSystemNavMapView: React.FC<DesignSystemNavMapViewProps> = ({
         { id: 'meu_kanban' as ViewScreen, title: 'Meu Kanban Individual', icon: CheckSquare, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: '4-Column Drag & Drop Board' },
         { id: 'kanban_equipe' as ViewScreen, title: 'Kanban da Equipe / Setorial', icon: Workflow, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: 'Sector Tabbed Kanban Board' },
         { id: 'visao_semanal' as ViewScreen, title: 'Planejamento Semanal (Weekly)', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'], layout: '5-Day Workload Schedule Grid' },
-        { id: 'planilhas' as ViewScreen, title: 'Base Geral de Atividades (Smart Sheet)', icon: FileSpreadsheet, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'DataGrid with Inline Filters' },
-        { id: 'formularios' as ViewScreen, title: 'Formulários Padronizados', icon: Layers, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'Template Gallery + Dynamic Form' },
-        { id: 'registro_atividades' as ViewScreen, title: 'Registro Rápido de Atividades', icon: Clock, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'Single View Task Logger' }
+        { id: 'planilhas' as ViewScreen, title: 'Base Geral de Atividades (Smart Sheet)', icon: FileSpreadsheet, roles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'], layout: 'DataGrid with Inline Filters' }
       ]
     },
     {

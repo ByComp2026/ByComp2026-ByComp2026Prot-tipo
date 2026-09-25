@@ -1,22 +1,15 @@
 import {
   collection,
   doc,
-  getDocs,
   setDoc,
-  updateDoc,
   deleteDoc,
   onSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
-import { Task, TaskStatus, Priority, Sector, ActivityRecord } from '../types';
-import { INITIAL_TASKS, SMART_SPREADSHEET_DATA } from '../data/mockData';
-import { INITIAL_FORM_SUBMISSIONS } from '../data/formSubmissions';
-import { FormSubmissionRecord } from '../utils/excelExport';
+import { Task, TaskStatus, ActivityRecord } from '../types';
 
 class TaskService {
   private tasksInitialized = false;
-  private activitiesInitialized = false;
-  private submissionsInitialized = false;
 
   // Listen to tasks in real time from Firestore
   public subscribeTasks(callback: (tasks: Task[]) => void): () => void {
@@ -24,14 +17,7 @@ class TaskService {
 
     return onSnapshot(
       tasksCol,
-      async (snapshot) => {
-        if (snapshot.empty && !this.tasksInitialized) {
-          this.tasksInitialized = true;
-          // Seed initial tasks to Firestore so boards are populated
-          await this.seedInitialTasks();
-          return;
-        }
-
+      (snapshot) => {
         const tasks: Task[] = [];
         snapshot.forEach((d) => {
           tasks.push(d.data() as Task);
@@ -42,20 +28,6 @@ class TaskService {
         handleFirestoreError(error, OperationType.LIST, 'tasks');
       }
     );
-  }
-
-  // Seed initial tasks to Firestore once
-  public async seedInitialTasks(): Promise<void> {
-    try {
-      const batchPromises = INITIAL_TASKS.map((task) => {
-        const taskRef = doc(db, 'tasks', task.id);
-        return setDoc(taskRef, task);
-      });
-      await Promise.all(batchPromises);
-      console.log('Initial Kanban tasks seeded to Firebase Firestore');
-    } catch (err) {
-      console.warn('Error seeding initial tasks:', err);
-    }
   }
 
   // Create a new Task in Firestore
@@ -118,13 +90,7 @@ class TaskService {
 
     return onSnapshot(
       actCol,
-      async (snapshot) => {
-        if (snapshot.empty && !this.activitiesInitialized) {
-          this.activitiesInitialized = true;
-          await this.seedInitialActivities();
-          return;
-        }
-
+      (snapshot) => {
         const activities: ActivityRecord[] = [];
         snapshot.forEach((d) => {
           activities.push(d.data() as ActivityRecord);
@@ -135,19 +101,6 @@ class TaskService {
         handleFirestoreError(error, OperationType.LIST, 'activities');
       }
     );
-  }
-
-  public async seedInitialActivities(): Promise<void> {
-    try {
-      const batchPromises = SMART_SPREADSHEET_DATA.slice(0, 15).map((act) => {
-        const actRef = doc(db, 'activities', act.id);
-        return setDoc(actRef, act);
-      });
-      await Promise.all(batchPromises);
-      console.log('Initial activities seeded to Firebase Firestore');
-    } catch (err) {
-      console.warn('Error seeding initial activities:', err);
-    }
   }
 
   public async createActivity(actData: Omit<ActivityRecord, 'id'>): Promise<ActivityRecord> {
@@ -168,62 +121,13 @@ class TaskService {
     }
   }
 
-  // ==========================================
-  // FORM SUBMISSIONS (Formulários & Banco)
-  // ==========================================
-
-  public subscribeSubmissions(callback: (submissions: FormSubmissionRecord[]) => void): () => void {
-    const subCol = collection(db, 'form_submissions');
-
-    return onSnapshot(
-      subCol,
-      async (snapshot) => {
-        if (snapshot.empty && !this.submissionsInitialized) {
-          this.submissionsInitialized = true;
-          await this.seedInitialSubmissions();
-          return;
-        }
-
-        const submissions: FormSubmissionRecord[] = [];
-        snapshot.forEach((d) => {
-          submissions.push(d.data() as FormSubmissionRecord);
-        });
-        callback(submissions);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'form_submissions');
-      }
-    );
-  }
-
-  public async seedInitialSubmissions(): Promise<void> {
+  public async deleteActivity(actId: string): Promise<void> {
     try {
-      const batchPromises = INITIAL_FORM_SUBMISSIONS.slice(0, 12).map((sub) => {
-        const subRef = doc(db, 'form_submissions', sub.id);
-        return setDoc(subRef, sub);
-      });
-      await Promise.all(batchPromises);
-      console.log('Initial form submissions seeded to Firebase Firestore');
-    } catch (err) {
-      console.warn('Error seeding initial submissions:', err);
-    }
-  }
-
-  public async createSubmission(submissionData: Omit<FormSubmissionRecord, 'id'>): Promise<FormSubmissionRecord> {
-    const subId = `sub-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const newSubmission: FormSubmissionRecord = {
-      ...submissionData,
-      id: subId
-    };
-
-    try {
-      const subRef = doc(db, 'form_submissions', subId);
-      await setDoc(subRef, newSubmission);
-      console.log('Submission saved to Firestore:', subId);
-      return newSubmission;
+      const actRef = doc(db, 'activities', actId);
+      await deleteDoc(actRef);
+      console.log('Activity deleted from Firestore:', actId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `form_submissions/${subId}`);
-      throw error;
+      handleFirestoreError(error, OperationType.DELETE, `activities/${actId}`);
     }
   }
 }

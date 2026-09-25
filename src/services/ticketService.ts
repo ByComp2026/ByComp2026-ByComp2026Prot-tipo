@@ -9,7 +9,7 @@ import {
   query,
   orderBy
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, handleFirestoreError, OperationType, sanitizeFirestoreDoc } from './firebase';
 import { SupportTicket, Priority } from '../types';
 
 export interface TicketValidationResult {
@@ -72,7 +72,7 @@ class TicketService {
     );
   }
 
-  // Create ticket with strict Firestore validation
+  // Create ticket with strict Firestore validation and sanitization
   public async createTicket(
     data: Omit<SupportTicket, 'id' | 'openTime'> & { openTime?: string }
   ): Promise<SupportTicket> {
@@ -111,7 +111,8 @@ class TicketService {
       status: data.status || 'Aberto',
       requesterEmail: data.requesterEmail || data.contactEmail || 'colaborador@bycomp.com.br',
       contactEmail: data.contactEmail || data.requesterEmail || 'colaborador@bycomp.com.br',
-      assignedTo: data.assignedTo,
+      assignedTo: data.assignedTo || '',
+      assignedAvatar: data.assignedAvatar || '',
       openTime: data.openTime || `${formattedDate} às ${formattedTime}`,
       sla: slaTarget,
       tags: data.tags || [data.sector, data.priority],
@@ -129,7 +130,9 @@ class TicketService {
 
     try {
       const ticketRef = doc(db, 'tickets', ticketId);
-      await setDoc(ticketRef, newTicket);
+      // Clean undefined properties before writing to Firestore
+      const sanitizedDoc = sanitizeFirestoreDoc(newTicket);
+      await setDoc(ticketRef, sanitizedDoc);
       console.log('Ticket successfully created and validated in Firebase Firestore:', ticketId);
       return newTicket;
     } catch (error) {
@@ -142,14 +145,11 @@ class TicketService {
   public async updateTicket(ticketId: string, updates: Partial<SupportTicket>): Promise<void> {
     try {
       const ticketRef = doc(db, 'tickets', ticketId);
-      await setDoc(
-        ticketRef,
-        {
-          ...updates,
-          updatedAt: new Date().toISOString()
-        },
-        { merge: true }
-      );
+      const sanitizedUpdates = sanitizeFirestoreDoc({
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+      await setDoc(ticketRef, sanitizedUpdates, { merge: true });
       console.log('Ticket updated in Firestore:', ticketId);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `tickets/${ticketId}`);
@@ -183,17 +183,15 @@ class TicketService {
         details: `Motivo: ${reason}. Novo responsável: ${newAssignee || 'Fila do setor'}.`
       });
 
-      await setDoc(
-        ticketRef,
-        {
-          sector: targetSector,
-          status: 'Transferido',
-          assignedTo: newAssignee,
-          history,
-          updatedAt: new Date().toISOString()
-        },
-        { merge: true }
-      );
+      const sanitizedPayload = sanitizeFirestoreDoc({
+        sector: targetSector,
+        status: 'Transferido',
+        assignedTo: newAssignee || '',
+        history,
+        updatedAt: new Date().toISOString()
+      });
+
+      await setDoc(ticketRef, sanitizedPayload, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `tickets/${ticketId}`);
     }
@@ -225,21 +223,19 @@ class TicketService {
         details: `Solução aplicada: ${resolution}${timeSpent ? ` (Tempo: ${timeSpent})` : ''}`
       });
 
-      await setDoc(
-        ticketRef,
-        {
-          status: 'Resolvido',
-          resolutionSummary: resolution,
-          resolution,
-          resolvedBy,
-          resolutionTimeSpent: timeSpent,
-          closedAt: `${formattedDate} às ${formattedTime}`,
-          resolvedAt: new Date().toISOString(),
-          history,
-          updatedAt: new Date().toISOString()
-        },
-        { merge: true }
-      );
+      const sanitizedPayload = sanitizeFirestoreDoc({
+        status: 'Resolvido',
+        resolutionSummary: resolution,
+        resolution,
+        resolvedBy,
+        resolutionTimeSpent: timeSpent || '',
+        closedAt: `${formattedDate} às ${formattedTime}`,
+        resolvedAt: new Date().toISOString(),
+        history,
+        updatedAt: new Date().toISOString()
+      });
+
+      await setDoc(ticketRef, sanitizedPayload, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `tickets/${ticketId}`);
     }

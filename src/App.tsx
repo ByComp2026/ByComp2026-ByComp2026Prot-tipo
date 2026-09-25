@@ -9,13 +9,11 @@ import { PresentationGuideModal } from './components/PresentationGuideModal';
 // 22 Screen Views
 import { LoginView } from './components/views/LoginView';
 import { DashboardView } from './components/views/DashboardView';
-import { FormsView } from './components/views/FormsView';
 import { SmartSpreadsheetView } from './components/views/SmartSpreadsheetView';
 import { AgendaView } from './components/views/AgendaView';
 import { MyKanbanView } from './components/views/MyKanbanView';
 import { TeamKanbanView } from './components/views/TeamKanbanView';
 import { WeeklyPlanningView } from './components/views/WeeklyPlanningView';
-import { ActivityRegisterView } from './components/views/ActivityRegisterView';
 import { TimeClockView } from './components/views/TimeClockView';
 import { TimeCardMirrorView } from './components/views/TimeCardMirrorView';
 import { PontoAdminView } from './components/views/PontoAdminView';
@@ -131,13 +129,11 @@ export default function App() {
   const screenOrder: ViewScreen[] = [
     'login',
     'dashboard',
-    'formularios',
     'planilhas',
     'agenda',
     'meu_kanban',
     'kanban_equipe',
     'visao_semanal',
-    'registro_atividades',
     'registro_ponto',
     'espelho_ponto',
     'gestao_ponto',
@@ -279,10 +275,8 @@ export default function App() {
         );
       case 'dashboard':
         return <DashboardView onNavigate={setCurrentScreen} />;
-      case 'formularios':
-        return <FormsView currentUser={currentUser} onNavigate={setCurrentScreen} />;
       case 'planilhas':
-        return <SmartSpreadsheetView />;
+        return <SmartSpreadsheetView currentUser={currentUser} />;
       case 'agenda':
         return <AgendaView />;
       case 'meu_kanban':
@@ -291,8 +285,6 @@ export default function App() {
         return <TeamKanbanView />;
       case 'visao_semanal':
         return <WeeklyPlanningView />;
-      case 'registro_atividades':
-        return <ActivityRegisterView />;
       case 'registro_ponto':
         return <TimeClockView currentUser={currentUser} onNavigate={setCurrentScreen} />;
       case 'espelho_ponto':

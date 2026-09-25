@@ -124,6 +124,21 @@ class PontoService {
     });
   }
 
+  // Alias compatible with getTodayPunches(id?, name?)
+  public getTodayPunches(collaboratorId?: string, colabName?: string): PontoRecord[] {
+    const today = new Date().toLocaleDateString('pt-BR');
+    return this.records.filter(r => {
+      const isToday = r.date === today;
+      if (collaboratorId && r.collaboratorId === collaboratorId) {
+        return isToday;
+      }
+      if (colabName) {
+        return isToday && r.collaboratorName.toLowerCase() === colabName.toLowerCase();
+      }
+      return isToday;
+    });
+  }
+
   public getWorkStatus(colabName?: string): 'Jornada Não Iniciada' | 'Em expediente' | 'Intervalo' | 'Encerrado' {
     const todayPunches = this.getTodayRecords(colabName);
     if (todayPunches.length === 0) {
@@ -143,14 +158,51 @@ class PontoService {
     return 'Em expediente';
   }
 
-  public addPunch(punch: Omit<PontoRecord, 'id' | 'nsr' | 'sha256Hash'>): PontoRecord {
+  // Alias compatible with getCurrentWorkStatus(id?, name?)
+  public getCurrentWorkStatus(collaboratorId?: string, colabName?: string): 'Jornada Não Iniciada' | 'Em expediente' | 'Intervalo' | 'Encerrado' {
+    const todayPunches = this.getTodayPunches(collaboratorId, colabName);
+    if (todayPunches.length === 0) {
+      return 'Jornada Não Iniciada';
+    }
+
+    const latest = todayPunches[0];
+    if (latest.type === 'ENTRADA' || latest.type === 'RETORNO') {
+      return 'Em expediente';
+    }
+    if (latest.type === 'INÍCIO DO INTERVALO') {
+      return 'Intervalo';
+    }
+    if (latest.type === 'SAÍDA') {
+      return 'Encerrado';
+    }
+    return 'Em expediente';
+  }
+
+  // Register a new punch (alias for registerPunch and addPunch)
+  public registerPunch(
+    punch: Omit<PontoRecord, 'id' | 'nsr' | 'sha256Hash' | 'time' | 'date' | 'timestamp'> & {
+      time?: string;
+      date?: string;
+      timestamp?: number;
+    }
+  ): PontoRecord {
+    return this.addPunch(punch);
+  }
+
+  public addPunch(
+    punch: Omit<PontoRecord, 'id' | 'nsr' | 'sha256Hash' | 'time' | 'date' | 'timestamp'> & {
+      time?: string;
+      date?: string;
+      timestamp?: number;
+    }
+  ): PontoRecord {
     const randomHex = Math.random().toString(16).substring(2, 10);
     const id = `PNT-${Date.now()}-${randomHex}`;
     const seq = String(this.records.length + 1).padStart(5, '0');
     const nsr = `NSR-${new Date().getFullYear()}-${seq}`;
 
     // Compute synthetic SHA-256 hash
-    const raw = `${nsr}|${punch.timestamp}|${punch.collaboratorMatricula}|${punch.type}|${punch.ipAddress}|${punch.location.latitude}|${punch.location.longitude}`;
+    const raw = `${nsr}|${punch.timestamp || Date.now()}|${punch.collaboratorMatricula}|${punch.type}|${punch.ipAddress}|${punch.location.latitude}|${punch.location.longitude}`;
     let hash = 0;
     for (let i = 0; i < raw.length; i++) {
       hash = (hash << 5) - hash + raw.charCodeAt(i);
@@ -162,7 +214,10 @@ class PontoService {
       ...punch,
       id,
       nsr,
-      sha256Hash
+      sha256Hash,
+      date: punch.date || new Date().toLocaleDateString('pt-BR'),
+      time: punch.time || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      timestamp: punch.timestamp || Date.now()
     };
 
     this.records = [completeRecord, ...this.records];

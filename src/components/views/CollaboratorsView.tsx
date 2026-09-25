@@ -43,7 +43,6 @@ import {
   Trash2
 } from 'lucide-react';
 import {
-  ALL_COLLABORATORS,
   INITIAL_ORGANIZATIONAL_SECTORS,
   ORGANIZATIONAL_AREAS,
   ROLE_DEFINITIONS,
@@ -144,10 +143,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   onSwitchUser,
   onOpenSimulatorModal
 }) => {
-  // Local state for collaborators initialized with enriched HR data
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => {
-    return ALL_COLLABORATORS.map((c, idx) => enrichCollaboratorWithHRData(c, idx));
-  });
+  // Local state for collaborators loaded strictly from Firebase Firestore
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
   const [sectors, setSectors] = useState<OrganizationalSector[]>(INITIAL_ORGANIZATIONAL_SECTORS);
 
@@ -215,33 +212,18 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
     });
 
     const unsubUsers = dbService.subscribeUsers((dbUsers) => {
-      setCollaborators((prev) => {
+      setCollaborators(() => {
         let currentDeleted: string[] = [];
         try {
           const cached = localStorage.getItem('bycomp_deleted_user_ids');
           if (cached) currentDeleted = JSON.parse(cached);
         } catch {}
 
-        const map = new Map<string, Collaborator>();
-        // Base initial mock collaborators excluding deleted
-        ALL_COLLABORATORS.forEach((c, idx) => {
-          if (!currentDeleted.includes(c.id)) {
-            map.set(c.id, enrichCollaboratorWithHRData(c, idx));
-          }
-        });
-
-        // Any previous runtime additions that are not deleted
-        prev.forEach((c) => {
-          if (!currentDeleted.includes(c.id)) {
-            map.set(c.id, c);
-          }
-        });
-
-        // DB updates from Firestore
-        dbUsers.forEach((u) => {
+        const list: Collaborator[] = [];
+        // Strictly Firebase users only - no mock users
+        dbUsers.forEach((u, idx) => {
           if (!currentDeleted.includes(u.id)) {
-            const existing = map.get(u.id);
-            map.set(u.id, {
+            list.push(enrichCollaboratorWithHRData({
               id: u.id,
               name: u.name,
               role: u.role,
@@ -249,23 +231,23 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               area: u.area,
               sector: u.sector,
               email: u.email,
-              avatar: u.avatar || existing?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+              avatar: u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
               status: u.status,
-              currentTask: u.currentTask || existing?.currentTask || 'Atividades operacionais ByComp',
+              currentTask: u.currentTask || 'Atividades operacionais ByComp',
               phone: u.phone,
-              admissionDate: u.admissionDate || existing?.admissionDate || '16/09/2026',
-              contractType: u.contractType || existing?.contractType || 'CLT',
-              salaryBracket: u.salaryBracket || existing?.salaryBracket || 'R$ 4.800,00',
-              workSchedule: u.workSchedule || existing?.workSchedule || '40h semanais',
-              emergencyContact: u.emergencyContact || existing?.emergencyContact,
-              cpfMasked: u.cpfMasked || existing?.cpfMasked,
-              asoStatus: u.asoStatus || existing?.asoStatus || 'Em dia',
-              benefits: u.benefits || existing?.benefits
-            });
+              admissionDate: u.admissionDate || '16/09/2026',
+              contractType: u.contractType || 'CLT',
+              salaryBracket: u.salaryBracket || 'R$ 4.800,00',
+              workSchedule: u.workSchedule || '40h semanais',
+              emergencyContact: u.emergencyContact,
+              cpfMasked: u.cpfMasked,
+              asoStatus: u.asoStatus || 'Em dia',
+              benefits: u.benefits
+            }, idx));
           }
         });
 
-        return Array.from(map.values()).filter((c) => !currentDeleted.includes(c.id));
+        return list;
       });
     });
 
@@ -1842,11 +1824,19 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   <button
                     key={role}
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       const updated = { ...permissionsUser, userRole: role };
                       setCollaborators(collaborators.map(c => (c.id === updated.id ? updated : c)));
                       setPermissionsUser(null);
-                      showToast(`✓ Perfil de ${updated.name} alterado para ${role}.`);
+                      try {
+                        await dbService.updateUserProfile({
+                          id: updated.id,
+                          userRole: role
+                        });
+                        showToast(`✓ Perfil de ${updated.name} alterado para ${role} e sincronizado no Firebase.`);
+                      } catch (e) {
+                        showToast(`✓ Perfil de ${updated.name} alterado para ${role}.`);
+                      }
                     }}
                     className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                       isSelected

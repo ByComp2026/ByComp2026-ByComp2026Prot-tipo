@@ -37,8 +37,6 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   kanban_equipe: { title: 'Kanban da Equipe', subtitle: 'Suporte N2 • Semana 14/09 a 20/09/2026', category: 'Operação' },
   visao_semanal: { title: 'Planejamento Semanal', subtitle: 'Distribuição de atividades por dia', category: 'Operação' },
   planilhas: { title: 'Base de Atividades', subtitle: 'Planilha inteligente com filtros e exportação Excel', category: 'Operação' },
-  formularios: { title: 'Formulários e Banco de Dados', subtitle: 'Cadastros padronizados e exportação Excel (.xlsx)', category: 'Operação & Dados' },
-  registro_atividades: { title: 'Registrar Atividade', subtitle: 'Apontamento técnico de esforço e status', category: 'Operação' },
   registro_ponto: { title: 'Registro de Ponto Eletrônico', subtitle: 'Controle de jornada com simulação biométrica', category: 'Pessoas & Ponto' },
   espelho_ponto: { title: 'Espelho de Ponto', subtitle: 'Consolidação mensal e horas trabalhadas', category: 'Pessoas & Ponto' },
   gestao_ponto: { title: 'Gestão de Ponto (Admin)', subtitle: 'Painel da gerência com status em tempo real', category: 'Pessoas & Ponto' },
@@ -215,33 +213,37 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
                 {/* Styled Identical to "PROTÓTIPO" */}
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#e8ba9d]/30 text-[#92400e] border border-[#e8ba9d]">
-                  3 ATIVOS
+                  {MOCK_ALERTS.length} ATIVOS
                 </span>
               </div>
 
               <div className="space-y-2">
-                {MOCK_ALERTS.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="p-2.5 rounded-lg text-xs flex items-start gap-2 border bg-slate-50 border-slate-200 hover:bg-[#37558d]/10 transition-colors"
-                  >
-                    {alert.type === 'warning' ? (
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <p className="font-medium text-[12px] text-slate-800 truncate">{alert.text}</p>
-                        {/* Alert tag styled identical to Protótipo */}
-                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1 py-0.2 rounded bg-[#e8ba9d]/30 text-[#92400e] border border-[#e8ba9d] shrink-0">
-                          {alert.type === 'warning' ? 'ALERTA' : 'STATUS'}
-                        </span>
+                {MOCK_ALERTS.length === 0 ? (
+                  <p className="text-center text-xs text-slate-400 py-3">Nenhum alerta pendente</p>
+                ) : (
+                  MOCK_ALERTS.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="p-2.5 rounded-lg text-xs flex items-start gap-2 border bg-slate-50 border-slate-200 hover:bg-[#37558d]/10 transition-colors"
+                    >
+                      {alert.type === 'warning' ? (
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p className="font-medium text-[12px] text-slate-800 truncate">{alert.text}</p>
+                          {/* Alert tag styled identical to Protótipo */}
+                          <span className="text-[9px] font-semibold uppercase tracking-wider px-1 py-0.2 rounded bg-[#e8ba9d]/30 text-[#92400e] border border-[#e8ba9d] shrink-0">
+                            {alert.type === 'warning' ? 'ALERTA' : 'STATUS'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500">{alert.time}</p>
                       </div>
-                      <p className="text-[10px] text-slate-500">{alert.time}</p>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="mt-3 pt-2 border-t border-slate-200 flex justify-between items-center text-[11px]">

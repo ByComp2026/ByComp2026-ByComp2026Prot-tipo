@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { ActivityRecord, FormTemplate, Collaborator } from '../types';
+import { ActivityRecord, Collaborator } from '../types';
 
 /**
  * Generates and triggers actual browser download of an Excel (.xlsx) file
@@ -49,104 +49,6 @@ export function exportActivitiesToExcel(
 
   // Trigger real file download
   XLSX.writeFile(workbook, filename);
-}
-
-export interface FormSubmissionRecord {
-  id: string;
-  formId: string;
-  formTitle: string;
-  submittedAt: string;
-  submittedBy: string;
-  status: 'Aprovado' | 'Pendente' | 'Processado' | 'Em Análise';
-  values: Record<string, string>;
-}
-
-/**
- * Generates and triggers download of Excel (.xlsx) file for a specific Form Database
- * including all custom fields defined in that form template!
- * Enables Excel native AutoFilter so columns like Colaborador and Setor can be filtered.
- */
-export function exportFormSubmissionsToExcel(
-  template: FormTemplate,
-  submissions: FormSubmissionRecord[],
-  filename?: string
-) {
-  const actualFilename = filename || `Banco_de_Dados_${template.title.replace(/\s+/g, '_')}_ByComp.xlsx`;
-
-  let rows: Record<string, any>[] = [];
-
-  if (template.id === 'form-1') {
-    // Specialized layout for "Registro de atividade" (Fases 5 e 6 Help Desk integration)
-    rows = submissions.map((sub, idx) => ({
-      'Protocolo / ID': sub.id,
-      'Seq': idx + 1,
-      'Data': sub.values['f_data'] || sub.submittedAt,
-      'Colaborador (Finalizador)': sub.values['f_colab'] || sub.submittedBy,
-      'Setor Responsável': sub.values['f_setor'] || 'Geral',
-      'Título da Atividade': sub.values['f_titulo'] || sub.formTitle,
-      'Prioridade': sub.values['f_prioridade'] || 'Média',
-      'Tempo Gasto': sub.values['f_tempo'] || '00h 45m',
-      'Descrição da Solução / Procedimento': sub.values['f_desc'] || '-',
-      'Status': sub.status,
-      'Observações Técnicas / Base de Conhecimento': sub.values['f_obs'] || '-'
-    }));
-  } else {
-    rows = submissions.map((sub, idx) => {
-      const row: Record<string, any> = {
-        'Protocolo / ID': sub.id,
-        'Seq': idx + 1,
-        'Data de Envio': sub.submittedAt,
-        'Submetido Por': sub.submittedBy,
-        'Status': sub.status,
-      };
-
-      // Dynamically add all template fields in order
-      template.fields.forEach(field => {
-        row[field.label] = sub.values[field.id] || '-';
-      });
-
-      return row;
-    });
-  }
-
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-
-  // Set friendly column widths
-  if (template.id === 'form-1') {
-    worksheet['!cols'] = [
-      { wch: 18 }, // Protocolo
-      { wch: 6 },  // Seq
-      { wch: 14 }, // Data
-      { wch: 28 }, // Colaborador (Finalizador)
-      { wch: 20 }, // Setor Responsável
-      { wch: 40 }, // Título da Atividade
-      { wch: 14 }, // Prioridade
-      { wch: 14 }, // Tempo Gasto
-      { wch: 55 }, // Descrição da Solução
-      { wch: 14 }, // Status
-      { wch: 45 }  // Observações
-    ];
-  } else {
-    const colWidths = [
-      { wch: 16 }, // Protocolo
-      { wch: 6 },  // Seq
-      { wch: 20 }, // Data de Envio
-      { wch: 22 }, // Submetido Por
-      { wch: 14 }, // Status
-      ...template.fields.map(f => ({ wch: Math.max(f.label.length + 5, 20) }))
-    ];
-    worksheet['!cols'] = colWidths;
-  }
-
-  // Enable native Excel AutoFilter drop-down arrows on all columns
-  if (worksheet['!ref']) {
-    worksheet['!autofilter'] = { ref: worksheet['!ref'] };
-  }
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, template.title.substring(0, 31));
-
-  XLSX.writeFile(workbook, actualFilename);
 }
 
 /**

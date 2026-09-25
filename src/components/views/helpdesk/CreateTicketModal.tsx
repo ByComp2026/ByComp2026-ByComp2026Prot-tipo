@@ -121,9 +121,9 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         priority,
         category: serviceType,
         serviceType,
-        description: description.trim() || undefined,
-        assignedTo: assignToMe ? (currentUser.name || 'Victor Estevão') : undefined,
-        assignedAvatar: assignToMe ? currentUser.avatar : undefined,
+        description: description.trim() || '',
+        assignedTo: assignToMe ? (currentUser.name || 'Victor Estevão') : '',
+        assignedAvatar: assignToMe ? (currentUser.avatar || '') : '',
         status: assignToMe ? 'Em atendimento' : 'Aberto',
         tags: [sector, priority]
       });

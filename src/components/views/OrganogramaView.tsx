@@ -25,7 +25,7 @@ import {
   Workflow,
   Check
 } from 'lucide-react';
-import { ALL_COLLABORATORS, INITIAL_ORGANIZATIONAL_SECTORS } from '../../data/mockData';
+import { INITIAL_ORGANIZATIONAL_SECTORS, CURRENT_USER } from '../../data/mockData';
 import { Collaborator, OrganizationalSector, UserRole, ViewScreen } from '../../types';
 import { exportOrganogramaToExcel } from '../../utils/excelExport';
 import { PrivateAccessLock } from './collaborators/PrivateAccessLock';
@@ -61,42 +61,36 @@ export const OrganogramaView: React.FC<OrganogramaViewProps> = ({
   }
 
   // Estados dos colaboradores e setores
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(ALL_COLLABORATORS);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [sectors, setSectors] = useState<OrganizationalSector[]>(INITIAL_ORGANIZATIONAL_SECTORS);
 
-  // Sincronização em tempo real com o Firebase Firestore
+  // Sincronização em tempo real exclusivamente com os usuários do Firebase Firestore
   useEffect(() => {
     const unsubUsers = dbService.subscribeUsers((dbUsers) => {
       if (dbUsers && dbUsers.length > 0) {
-        setCollaborators((prev) => {
-          const map = new Map<string, Collaborator>();
-          prev.forEach((c) => map.set(c.id, c));
-          dbUsers.forEach((u) => {
-            const existing = map.get(u.id);
-            map.set(u.id, {
-              id: u.id,
-              name: u.name,
-              role: u.role,
-              userRole: u.userRole,
-              area: u.area,
-              sector: u.sector,
-              email: u.email,
-              avatar: u.avatar || existing?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-              status: u.status,
-              currentTask: u.currentTask || existing?.currentTask || 'Atividades operacionais ByComp',
-              phone: u.phone,
-              admissionDate: u.admissionDate || existing?.admissionDate || '16/09/2026',
-              contractType: u.contractType || existing?.contractType || 'CLT',
-              salaryBracket: u.salaryBracket || existing?.salaryBracket || 'R$ 4.800,00',
-              workSchedule: u.workSchedule || existing?.workSchedule || '40h semanais',
-              emergencyContact: u.emergencyContact || existing?.emergencyContact,
-              cpfMasked: u.cpfMasked || existing?.cpfMasked,
-              asoStatus: u.asoStatus || existing?.asoStatus || 'Em dia',
-              benefits: u.benefits || existing?.benefits
-            });
-          });
-          return Array.from(map.values());
-        });
+        setCollaborators(
+          dbUsers.map((u) => ({
+            id: u.id,
+            name: u.name,
+            role: u.role,
+            userRole: u.userRole,
+            area: u.area,
+            sector: u.sector,
+            email: u.email,
+            avatar: u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+            status: u.status,
+            currentTask: u.currentTask || 'Atividades operacionais ByComp',
+            phone: u.phone,
+            admissionDate: u.admissionDate || '16/09/2026',
+            contractType: u.contractType || 'CLT',
+            salaryBracket: u.salaryBracket || 'R$ 4.800,00',
+            workSchedule: u.workSchedule || '40h semanais',
+            emergencyContact: u.emergencyContact,
+            cpfMasked: u.cpfMasked,
+            asoStatus: u.asoStatus || 'Em dia',
+            benefits: u.benefits
+          }))
+        );
       }
     });
 
@@ -142,7 +136,7 @@ export const OrganogramaView: React.FC<OrganogramaViewProps> = ({
   const [reportingSubjectId, setReportingSubjectId] = useState<string>('colab-1');
 
   // Estado do formulário do simulador
-  const [simColabId, setSimColabId] = useState<string>(ALL_COLLABORATORS[1]?.id || 'colab-2');
+  const [simColabId, setSimColabId] = useState<string>('');
   const [simNewSector, setSimNewSector] = useState<string>('Suporte N2');
   const [simNewRole, setSimNewRole] = useState<string>('Analista Sênior');
   const [simNewAccess, setSimNewAccess] = useState<UserRole>('GESTOR');
@@ -161,40 +155,35 @@ export const OrganogramaView: React.FC<OrganogramaViewProps> = ({
       name: 'Operações de TI & Suporte',
       sectors: ['N1', 'N2', 'N3'],
       color: 'border-slate-200 bg-slate-50/50 text-[#37558d]',
-      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20',
-      leader: 'Carlos Eduardo / Juliana Pires'
+      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20'
     },
     {
       id: 'DESENVOLVIMENTO',
       name: 'Engenharia de Software & Web',
       sectors: ['Front-End', 'Back-End'],
       color: 'border-slate-200 bg-slate-50/50 text-[#37558d]',
-      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20',
-      leader: 'Beatriz Lima / Rodrigo Fontes'
+      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20'
     },
     {
       id: 'SEGURANÇA',
       name: 'Cyber Security & Defesa Cibernética',
       sectors: ['Cyber Security'],
       color: 'border-slate-200 bg-slate-50/50 text-[#37558d]',
-      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20',
-      leader: 'Lucas Martins'
+      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20'
     },
     {
       id: 'DADOS',
       name: 'Governança & Arquitetura de Dados',
       sectors: ['DBA'],
       color: 'border-slate-200 bg-slate-50/50 text-[#37558d]',
-      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20',
-      leader: 'Camila Rocha'
+      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20'
     },
     {
       id: 'ADMINISTRATIVO',
       name: 'Administração, Gestão & Pessoas',
       sectors: ['RH', 'Financeiro', 'Gestão', 'Administrativo'],
       color: 'border-slate-200 bg-slate-50/50 text-[#37558d]',
-      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20',
-      leader: 'Helena Santos / Victor Estevão'
+      badgeColor: 'bg-[#37558d]/10 text-[#37558d] border-[#37558d]/20'
     }
   ];
 
@@ -274,7 +263,7 @@ export const OrganogramaView: React.FC<OrganogramaViewProps> = ({
     }
   };
 
-  const executiveLeader = collaborators.find(c => c.userRole === 'SUPER_ADMIN') || ALL_COLLABORATORS[0];
+  const executiveLeader = collaborators.find(c => c.userRole === 'SUPER_ADMIN') || collaborators[0] || CURRENT_USER;
   const reportingSubject = collaborators.find(c => c.id === reportingSubjectId) || executiveLeader;
 
   const reportingHierarchy = useMemo(() => {

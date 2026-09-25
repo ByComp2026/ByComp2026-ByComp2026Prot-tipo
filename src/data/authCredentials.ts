@@ -150,22 +150,6 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     restrictionReason: 'Consolidação e exportação de planilhas operacionais reservadas a Gestão e Administrativo.',
     recommendedRoleToTest: 'ADMINISTRATIVO'
   },
-  formularios: {
-    screen: 'formularios',
-    screenTitle: 'Formulários Corporativos',
-    category: 'OPERAÇÃO',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
-    restrictionReason: 'Criação e padronização de formulários corporativos gerenciados pelo setor Administrativo.',
-    recommendedRoleToTest: 'ADMINISTRATIVO'
-  },
-  registro_atividades: {
-    screen: 'registro_atividades',
-    screenTitle: 'Registrar Atividades',
-    category: 'OPERAÇÃO',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
-    restrictionReason: 'Apontamento de rotinas diárias e horas dedicadas disponível para todos os colaboradores.',
-    recommendedRoleToTest: 'COLABORADOR'
-  },
   registro_ponto: {
     screen: 'registro_ponto',
     screenTitle: 'Registro de Ponto Eletrônico',

@@ -177,7 +177,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       icon: Briefcase,
       badge: 'RH / Financeiro',
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-      action: 'formularios' as ViewScreen
+      action: 'planilhas' as ViewScreen
     }
   ];
 

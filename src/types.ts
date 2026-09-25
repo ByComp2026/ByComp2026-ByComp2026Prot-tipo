@@ -109,17 +109,6 @@ export interface CalendarEvent {
   location: string;
 }
 
-export interface AuditLog {
-  id: string;
-  date: string;
-  time: string;
-  user: string;
-  module: 'Ponto' | 'Kanban' | 'Atividade' | 'CRM' | 'Segurança' | 'Formulários' | 'Admin';
-  action: string;
-  description: string;
-  status: 'Sucesso' | 'Alerta' | 'Info';
-}
-
 export interface AuditLogItem {
   id: string;
   timestamp: string;
@@ -239,24 +228,6 @@ export interface WhatsAppConversation {
   }[];
 }
 
-export interface FormTemplate {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  fieldsCount: number;
-  lastUpdated: string;
-  iconName: string;
-  fields: {
-    id: string;
-    label: string;
-    type: 'text' | 'textarea' | 'select' | 'date' | 'number';
-    placeholder?: string;
-    options?: string[];
-    required?: boolean;
-  }[];
-}
-
 export interface WhatsAppMessage {
   id: string;
   sender: 'user' | 'contact';
@@ -292,13 +263,11 @@ export type ViewScreen =
   | 'login'
   | 'dashboard'
   | 'colaboradores'
-  | 'formularios'
   | 'planilhas'
   | 'agenda'
   | 'meu_kanban'
   | 'kanban_equipe'
   | 'visao_semanal'
-  | 'registro_atividades'
   | 'registro_ponto'
   | 'gestao_ponto'
   | 'espelho_ponto'

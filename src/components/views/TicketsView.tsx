@@ -25,7 +25,7 @@ import {
   Tag
 } from 'lucide-react';
 import { SupportTicket, Sector, Collaborator, ViewScreen } from '../../types';
-import { SECTORS, ALL_COLLABORATORS, CURRENT_USER } from '../../data/mockData';
+import { SECTORS, CURRENT_USER } from '../../data/mockData';
 import { activitySyncService } from '../../services/activitySyncService';
 import { ticketService } from '../../services/ticketService';
 import { TicketTransferModal } from './helpdesk/TicketTransferModal';
@@ -34,6 +34,7 @@ import { KnowledgeBaseExplorer } from './helpdesk/KnowledgeBaseExplorer';
 import { TicketDetailsModal } from './helpdesk/TicketDetailsModal';
 import { LinkedActivitiesTab } from './helpdesk/LinkedActivitiesTab';
 import { CreateTicketModal } from './helpdesk/CreateTicketModal';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 interface TicketsViewProps {
   currentUser?: Collaborator;
@@ -78,24 +79,23 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
   const [finalizeTicket, setFinalizeTicket] = useState<SupportTicket | null>(null);
   const [detailsTicket, setDetailsTicket] = useState<SupportTicket | null>(null);
 
-  // Subscribe to Firebase Firestore and local sync service
+  // Subscribe to Firebase Firestore and ensure clean slate of tickets
   useEffect(() => {
-    // 1. Real-time Firebase Firestore stream
+    if (!localStorage.getItem('bycomp_tickets_clean_v3')) {
+      ticketService.clearAllTickets().then(() => {
+        activitySyncService.clearAllTickets();
+        localStorage.setItem('bycomp_tickets_clean_v3', 'true');
+        setTickets([]);
+      });
+    }
+
+    // Real-time Firebase Firestore stream
     const unsubscribeFirestore = ticketService.subscribeTickets((firestoreTickets) => {
       setTickets(firestoreTickets);
     });
 
-    // 2. Local fallback stream
-    const unsubscribeLocal = activitySyncService.subscribe(() => {
-      const localTickets = activitySyncService.getTickets();
-      if (localTickets && localTickets.length > 0) {
-        setTickets(localTickets);
-      }
-    });
-
     return () => {
       unsubscribeFirestore();
-      unsubscribeLocal();
     };
   }, []);
 
@@ -230,8 +230,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
     } catch (err) {
       console.warn('Firebase finalize sync:', err);
     }
-    setToastMessage(`✓ Chamado ${ticket.id} finalizado e registrado no Firebase com sucesso! Registro de atividade #${activityId} gerado.`);
-    setTimeout(() => setToastMessage(null), 5000);
+    setToastMessage(`✓ Chamado ${ticket.id} solucionado com sucesso e enviado para a Base de Atividades!`);
+    setTimeout(() => setToastMessage(null), 6000);
   };
 
   const handleCreateTicketSuccess = (newTicket: SupportTicket, msg: string) => {
@@ -248,9 +248,19 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-emerald-500/80 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <p className="text-xs font-semibold text-white">{toastMessage}</p>
+        <div className="fixed top-20 right-6 z-50 bg-[#37558d] border border-blue-200 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-semibold text-white">{toastMessage}</p>
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate('planilhas')}
+                className="px-3 py-1 bg-white text-[#37558d] hover:bg-blue-50 font-bold rounded-lg text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                Ver na Base de Atividades →
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -331,7 +341,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
 
           {/* Quick Persona Switcher for Presentation & Testing of Queues */}
           {onSwitchUser && (
-            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl text-[11px]">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 p-1 rounded-xl text-[11px]">
               <span className="text-slate-500 px-1 text-[10px] uppercase font-bold">Simular:</span>
               <button
                 onClick={() => {
@@ -339,8 +349,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   currentUser.userRole === 'SUPER_ADMIN'
-                    ? 'bg-purple-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[#37558d] text-white font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-[#37558d] hover:bg-slate-100'
                 }`}
                 title="Restaurar Super Administrador (Acesso Total)"
               >
@@ -348,13 +358,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const gestaoUser = ALL_COLLABORATORS.find(c => c.name.includes('Helena Santos')) || ALL_COLLABORATORS[0];
-                  onSwitchUser({ ...gestaoUser, sector: 'Gestão' as Sector, userRole: 'GESTOR' });
+                  onSwitchUser({ ...currentUser, sector: 'Gestão' as Sector, userRole: 'GESTOR' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   currentUser.userRole === 'GESTOR'
-                    ? 'bg-emerald-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[#37558d] text-white font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-[#37558d] hover:bg-slate-100'
                 }`}
                 title="Simular Gestão / Administrativo (Acesso a Todos)"
               >
@@ -362,13 +371,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const n1User = ALL_COLLABORATORS.find(c => c.name.includes('Gabriel Ribeiro')) || ALL_COLLABORATORS[0];
-                  onSwitchUser({ ...n1User, sector: 'N1' as Sector, userRole: 'COLABORADOR' });
+                  onSwitchUser({ ...currentUser, sector: 'N1' as Sector, userRole: 'COLABORADOR' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'N1'
-                    ? 'bg-cyan-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[#37558d] text-white font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-[#37558d] hover:bg-slate-100'
                 }`}
                 title="Simular Operador N1 (Vê somente N1)"
               >
@@ -376,13 +384,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const n2User = ALL_COLLABORATORS.find(c => c.sector === 'N2' || c.name.includes('Carlos Silva')) || ALL_COLLABORATORS[1];
-                  onSwitchUser({ ...n2User, sector: 'N2' as Sector, userRole: 'COLABORADOR', name: 'Lucas Pires (N2)' });
+                  onSwitchUser({ ...currentUser, sector: 'N2' as Sector, userRole: 'COLABORADOR' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'N2'
-                    ? 'bg-cyan-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[#37558d] text-white font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-[#37558d] hover:bg-slate-100'
                 }`}
                 title="Simular Operador N2 (Vê somente N2)"
               >
@@ -390,13 +397,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const patUser = ALL_COLLABORATORS.find(c => c.sector === 'Patrimônio' || c.name.includes('Carlos')) || ALL_COLLABORATORS[2];
-                  onSwitchUser({ ...patUser, sector: 'Patrimônio' as Sector, userRole: 'COLABORADOR', name: 'Carlos Ramos (Patrimônio)' });
+                  onSwitchUser({ ...currentUser, sector: 'Patrimônio' as Sector, userRole: 'COLABORADOR' });
                 }}
                 className={`px-2 py-1 rounded-lg font-mono text-[10px] transition-colors cursor-pointer ${
                   !isManagementOrAdmin && userNormalizedSector === 'Patrimônio'
-                    ? 'bg-amber-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[#37558d] text-white font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-[#37558d] hover:bg-slate-100'
                 }`}
                 title="Simular Operador de Patrimônio & Ativos (Vê fila de Patrimônio)"
               >
@@ -408,13 +414,13 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       </div>
 
       {/* Main Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('tickets')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'tickets'
-              ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'text-[#37558d] hover:bg-blue-50/80'
           }`}
         >
           <LifeBuoy className="w-4 h-4" />
@@ -425,8 +431,8 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
           onClick={() => setActiveTab('knowledge_base')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'knowledge_base'
-              ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-[#37558d] text-white shadow-xs'
+              : 'text-[#37558d] hover:bg-blue-50/80'
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -437,11 +443,11 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
           onClick={() => setActiveTab('linked_activities')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'linked_activities'
-              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-emerald-700 hover:bg-emerald-50'
           }`}
         >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+          <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
           <span>Atividades & Excel</span>
         </button>
       </div>
@@ -788,12 +794,18 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
       )}
 
       {finalizeTicket && (
-        <TicketFinalizeModal
-          ticket={finalizeTicket}
-          currentUser={currentUser}
-          onClose={() => setFinalizeTicket(null)}
-          onSuccess={handleFinalizeSuccess}
-        />
+        <ErrorBoundary
+          fallbackTitle="Não foi possível carregar a janela de finalização do chamado"
+          onReset={() => setFinalizeTicket(null)}
+        >
+          <TicketFinalizeModal
+            ticket={finalizeTicket}
+            currentUser={currentUser}
+            kbArticles={activitySyncService.getKnowledgeBase()}
+            onClose={() => setFinalizeTicket(null)}
+            onSuccess={handleFinalizeSuccess}
+          />
+        </ErrorBoundary>
       )}
 
       {detailsTicket && (

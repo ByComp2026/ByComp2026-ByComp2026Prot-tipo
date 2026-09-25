@@ -4,46 +4,92 @@ import {
   X,
   BookOpen,
   Search,
-  Sparkles,
+  Tag,
   Clock,
   FileSpreadsheet,
-  Layers,
-  ArrowRight,
-  ShieldCheck,
-  Tag,
+  Building2,
   AlertCircle,
-  Plus
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
-import { SupportTicket, Collaborator, KnowledgeArticle } from '../../../types';
+import { SupportTicket, KnowledgeArticle, Collaborator } from '../../../types';
 import { activitySyncService } from '../../../services/activitySyncService';
-import { SERVICE_TYPES_BY_SECTOR } from '../../../data/knowledgeBase';
+import { taskService } from '../../../services/taskService';
 
 interface TicketFinalizeModalProps {
   ticket: SupportTicket;
   currentUser: Collaborator;
+  kbArticles?: KnowledgeArticle[];
   onClose: () => void;
-  onSuccess: (result: { ticket: SupportTicket; activityId: string }) => void;
+  onSuccess: (data: { ticket: SupportTicket; activityId: string }) => void;
 }
 
 export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
   ticket,
   currentUser,
+  kbArticles: passedKbArticles,
   onClose,
   onSuccess
 }) => {
-  const kbArticles = useMemo(() => activitySyncService.getKnowledgeBase(), []);
+  // Safe resolution of KB articles
+  const articlesList = useMemo<KnowledgeArticle[]>(() => {
+    if (Array.isArray(passedKbArticles) && passedKbArticles.length > 0) {
+      return passedKbArticles;
+    }
+    const fromSync = activitySyncService.getKnowledgeBase();
+    if (Array.isArray(fromSync) && fromSync.length > 0) {
+      return fromSync;
+    }
+    return [];
+  }, [passedKbArticles]);
 
-  // Filter default service types for current ticket sector
+  // Service Types based on sector
   const defaultServiceTypes = useMemo(() => {
-    const sectorKey = ticket.sector.replace('Suporte ', '').trim();
-    return SERVICE_TYPES_BY_SECTOR[sectorKey] || [
+    const sec = (ticket?.sector || '').toLowerCase();
+    if (sec.includes('n1')) {
+      return [
+        'Redefinição de Senha & Acesso',
+        'Suporte a Estação de Trabalho & Periféricos',
+        'Configuração de E-mail / Outlook / Navegador',
+        'Instalação de Softwares Homologados',
+        'Triagem & Atendimento N1'
+      ];
+    }
+    if (sec.includes('n2')) {
+      return [
+        'Diagnóstico Avançado de Hardware',
+        'Configuração de VPN & Rede Local',
+        'Configuração de Switch / Roteador / Wi-Fi',
+        'Gerenciamento de Usuários no Active Directory',
+        'Suporte a Impressoras de Rede & Servidores'
+      ];
+    }
+    if (sec.includes('n3')) {
+      return [
+        'Configuração de Firewall & Políticas de Segurança',
+        'Manutenção de Servidores Linux / Windows Server',
+        'Deploy e Atualização de Infraestrutura Cloud',
+        'Análise de Logs Críticos & Alta Disponibilidade',
+        'Investigação de Incidentes de Segurança'
+      ];
+    }
+    if (sec.includes('patrim')) {
+      return [
+        'Tombamento & Emissão de Etiqueta de Patrimônio',
+        'Inventário Físico & Auditoria de Ativos',
+        'Termo de Entrega / Devolução de Equipamento',
+        'Baixa Patrimonial & Descarte de Ativos',
+        'Remanejamento de Equipamentos entre Setores'
+      ];
+    }
+    return [
       'Atendimento Help Desk Geral',
       'Configuração de Acessos & Rede',
       'Manutenção Preventiva / Corretiva',
       'Resolução de Falha de Software',
       'Substituição de Hardware & Periféricos'
     ];
-  }, [ticket.sector]);
+  }, [ticket?.sector]);
 
   const [serviceType, setServiceType] = useState<string>(defaultServiceTypes[0] || 'Atendimento Help Desk Geral');
   const [selectedKbArticle, setSelectedKbArticle] = useState<KnowledgeArticle | null>(null);
@@ -54,23 +100,34 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
   const [newKbTitle, setNewKbTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter KB articles based on search or sector relevance
+  // Filter KB articles based on search or sector relevance (strictly safe against undefined)
   const filteredKbArticles = useMemo(() => {
-    return kbArticles.filter(art => {
-      const matchSearch =
-        art.title.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        art.summarySolution.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        art.code.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        art.tags.some(t => t.toLowerCase().includes(kbSearch.toLowerCase()));
-      return matchSearch;
+    if (!Array.isArray(articlesList)) return [];
+    const query = (kbSearch || '').toLowerCase().trim();
+    return articlesList.filter(art => {
+      if (!art) return false;
+      const title = (art.title || '').toLowerCase();
+      const summary = (art.summarySolution || '').toLowerCase();
+      const code = (art.code || '').toLowerCase();
+      const tags = Array.isArray(art.tags) ? art.tags : [];
+      return (
+        !query ||
+        title.includes(query) ||
+        summary.includes(query) ||
+        code.includes(query) ||
+        tags.some(t => (t || '').toLowerCase().includes(query))
+      );
     });
-  }, [kbArticles, kbSearch]);
+  }, [articlesList, kbSearch]);
 
   // Recommended articles for the ticket sector
   const recommendedKbArticles = useMemo(() => {
-    const secNorm = ticket.sector.replace('Suporte ', '').trim().toLowerCase();
-    return kbArticles.filter(art => art.sector.toLowerCase().includes(secNorm)).slice(0, 3);
-  }, [kbArticles, ticket.sector]);
+    if (!Array.isArray(articlesList)) return [];
+    const secNorm = (ticket?.sector || '').replace('Suporte ', '').trim().toLowerCase();
+    return articlesList
+      .filter(art => art && (art.sector || '').toLowerCase().includes(secNorm))
+      .slice(0, 3);
+  }, [articlesList, ticket?.sector]);
 
   const handleSelectKbArticle = (article: KnowledgeArticle) => {
     setSelectedKbArticle(article);
@@ -85,7 +142,7 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
     setSelectedKbArticle(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!serviceType || !resolutionSummary.trim()) return;
 
@@ -93,14 +150,33 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
     try {
       const result = activitySyncService.finalizeTicket({
         ticketId: ticket.id,
+        ticket,
         currentUser,
         serviceType,
         resolutionSummary: resolutionSummary.trim(),
         timeSpent: timeSpent || '00h 45m',
         kbArticleId: selectedKbArticle?.id,
         saveToKb: saveAsNewKb,
-        newKbTitle: newKbTitle.trim() || `Resolução: ${ticket.subject}`
+        newKbTitle: newKbTitle.trim() || `Resolução: ${ticket.subject || ticket.title || ticket.id}`
       });
+
+      // Direct persist into Firebase Firestore activities collection
+      try {
+        await taskService.createActivity({
+          date: result.activity.date,
+          time: result.activity.time,
+          collaborator: currentUser.name,
+          sector: ticket.sector || currentUser.sector || 'N1',
+          activity: `[Chamado ${ticket.id}] ${ticket.subject || ticket.title || 'Chamado'} — ${serviceType}`,
+          priority: ticket.priority || 'Média',
+          status: 'Concluído',
+          timeSpent: timeSpent || '00h 45m',
+          observation: `Solução: ${resolutionSummary.trim()}. Solicitante: ${ticket.client || ticket.requester || 'Cliente'}. Chamado #${ticket.id} fechado no Help Desk.`,
+          attachment: `laudo-resolucao-${ticket.id}.pdf`
+        });
+      } catch (errAct) {
+        console.warn('Error saving closed ticket activity to Firestore:', errAct);
+      }
 
       onSuccess({
         ticket: result.ticket,
@@ -113,70 +189,87 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-800 flex items-center justify-center text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-5 sm:p-6 border-b border-slate-200 bg-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                Finalizar Chamado {ticket.id}
-                <span className="text-[10px] font-mono font-normal px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                  Finalizar Chamado
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-[#37558d] border border-blue-200">
+                  {ticket.id}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Fases 5 & 6
                 </span>
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Fechamento técnico com Base de Conhecimento e vínculo com Registro de Atividade
+              </div>
+              <p className="text-xs text-[#37558d] font-medium mt-0.5">
+                Fechamento técnico com laudo, Base de Conhecimento e Registro de Atividade
               </p>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            title="Fechar"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Ticket Context Header Card */}
-        <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 text-xs">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400 font-medium">Cliente: <strong className="text-white">{ticket.client}</strong></span>
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
-                Setor: {ticket.sector}
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 bg-white">
+          {/* Ticket Summary Card */}
+          <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-1.5 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+              <span className="text-slate-600 font-medium">
+                Cliente / Solicitante: <strong className="text-slate-900">{ticket.client}</strong>
               </span>
-              <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
-                Prioridade: {ticket.priority}
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-200 text-[#37558d] font-mono font-semibold">
+                  {ticket.sector}
+                </span>
+                <span className={`px-2 py-0.5 rounded-lg font-bold ${
+                  ticket.priority === 'Crítica'
+                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                    : ticket.priority === 'Alta'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
+                  {ticket.priority}
+                </span>
+              </div>
+            </div>
+            <p className="font-bold text-[#37558d] text-sm">
+              {ticket.subject || ticket.title}
+            </p>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5 font-mono">
+              <span>
+                Especialista responsável: <strong className="text-[#37558d]">{currentUser.name}</strong> ({currentUser.sector})
               </span>
             </div>
           </div>
-          <p className="font-bold text-white text-sm">{ticket.subject}</p>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-0.5">
-            <span>Operador finalizador: <strong className="text-cyan-400">{currentUser.name}</strong> ({currentUser.sector})</span>
-          </div>
-        </div>
 
-        {/* Form Container */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 1. Tipo de Serviço Realizado */}
+          {/* 1. Tipo do Serviço Realizado */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Tipo do Serviço Realizado</span>
+                <Tag className="w-3.5 h-3.5 text-[#37558d]" />
+                Tipo do Serviço Realizado *
               </span>
-              <span className="text-[10px] text-slate-400 font-normal">
-                Classificação de esforço
-              </span>
+              <span className="text-[10px] text-slate-400 font-normal">Classificação operacional</span>
             </label>
             <select
               value={serviceType}
               onChange={(e) => setServiceType(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-sans"
               required
             >
               {defaultServiceTypes.map(st => (
@@ -186,18 +279,18 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
             </select>
           </div>
 
-          {/* 2. Base de Conhecimento (Fase 6) Picker */}
-          <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-900/40 space-y-3">
+          {/* 2. Base de Conhecimento Picker (Fase 6) */}
+          <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-cyan-300 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-cyan-400" />
-                <span>Fase 6 • Usar Solução da Base de Conhecimento</span>
+              <label className="text-xs font-bold text-[#37558d] flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#37558d]" />
+                <span>Fase 6 • Solução da Base de Conhecimento</span>
               </label>
               {selectedKbArticle && (
                 <button
                   type="button"
                   onClick={handleClearSelectedKb}
-                  className="text-[11px] text-rose-400 hover:text-rose-300 underline cursor-pointer"
+                  className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold underline cursor-pointer"
                 >
                   Desvincular artigo
                 </button>
@@ -206,66 +299,68 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
 
             {selectedKbArticle ? (
               /* Selected Article Card */
-              <div className="p-3.5 rounded-xl bg-cyan-950/50 border border-cyan-500/60 space-y-2 animate-in fade-in">
+              <div className="p-3.5 rounded-xl bg-white border border-blue-300 space-y-2 shadow-xs">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-cyan-300 font-bold bg-cyan-900/60 px-2 py-0.5 rounded">
+                    <span className="font-mono text-[#37558d] font-bold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg">
                       {selectedKbArticle.code}
                     </span>
-                    <span className="font-bold text-white">{selectedKbArticle.title}</span>
+                    <span className="font-bold text-slate-900">{selectedKbArticle.title}</span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] text-emerald-700 font-mono font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                     {selectedKbArticle.usefulCount} resoluções
                   </span>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   {selectedKbArticle.summarySolution}
                 </p>
-                <div className="text-[11px] text-slate-400 flex items-center gap-3 pt-1 border-t border-cyan-900/40 font-mono">
-                  <span>Setor: {selectedKbArticle.sector}</span>
-                  <span>Tempo médio: {selectedKbArticle.estimatedResolutionMinutes} min</span>
-                  <span>Autor: {selectedKbArticle.author}</span>
+                <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-3 pt-1 border-t border-slate-100 font-mono">
+                  <span>Setor: <strong className="text-slate-700">{selectedKbArticle.sector}</strong></span>
+                  <span>•</span>
+                  <span>Tempo médio: <strong className="text-slate-700">{selectedKbArticle.estimatedResolutionMinutes} min</strong></span>
+                  <span>•</span>
+                  <span>Autor: <strong className="text-slate-700">{selectedKbArticle.author}</strong></span>
                 </div>
               </div>
             ) : (
-              /* Article Search & Quick Recommendations */
+              /* Search & Recommendations */
               <div className="space-y-2.5">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Pesquisar procedimentos padrão, códigos (ex: N1-AUTH, N2-NET)..."
                     value={kbSearch}
                     onChange={(e) => setKbSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-8 pr-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d]"
                   />
                 </div>
 
-                {/* Suggestions List */}
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                  <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">
-                    {kbSearch ? 'Resultados da Base de Conhecimento:' : `Soluções Recomendadas para ${ticket.sector}:`}
+                  <span className="text-[10px] text-[#37558d] block font-bold uppercase tracking-wider">
+                    {kbSearch ? 'Resultados da Base de Conhecimento:' : `Soluções Sugeridas para ${ticket.sector}:`}
                   </span>
                   {(kbSearch ? filteredKbArticles.slice(0, 4) : recommendedKbArticles).map(art => (
                     <div
                       key={art.id}
                       onClick={() => handleSelectKbArticle(art)}
-                      className="p-2 rounded-lg bg-slate-900 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-700/60 cursor-pointer transition-all flex items-center justify-between text-xs group"
+                      className="p-2.5 rounded-xl bg-white hover:bg-blue-50/70 border border-slate-200 hover:border-blue-300 cursor-pointer transition-all flex items-center justify-between text-xs group shadow-2xs"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-cyan-400 font-bold bg-slate-950 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-[10px] text-[#37558d] font-bold bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md">
                           {art.code}
                         </span>
-                        <span className="text-white font-medium group-hover:text-cyan-200 line-clamp-1">
+                        <span className="text-slate-800 font-semibold group-hover:text-[#37558d] line-clamp-1">
                           {art.title}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-500 font-mono">
                           {art.estimatedResolutionMinutes}m
                         </span>
-                        <span className="text-[10px] text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                          Usar Solução →
+                        <span className="text-[10px] text-[#37558d] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                          Usar Solução
+                          <ChevronRight className="w-3 h-3" />
                         </span>
                       </div>
                     </div>
@@ -275,13 +370,11 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
             )}
           </div>
 
-          {/* 3. Resumo da Solução Realizada (Vai para a Atividade e para o Laudo) */}
+          {/* 3. Resumo da Solução Realizada */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
-              <span>Resumo do que foi Realizado (Solução Aplicada)</span>
-              <span className="text-[10px] text-slate-400 font-normal">
-                Será registrado na timeline e no Registro de Atividades
-              </span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span>Laudo Técnico & Resumo da Solução Realizada *</span>
+              <span className="text-[10px] text-slate-400 font-normal">Será registrado na timeline</span>
             </label>
             <textarea
               value={resolutionSummary}
@@ -289,46 +382,46 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
               placeholder="Descreva de modo conciso o procedimento técnico executado para solucionar o chamado..."
               rows={3}
               required
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none font-sans"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all resize-none font-sans"
             />
           </div>
 
           {/* 4. Tempo Gasto e Salvar na KB */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
             <div>
-              <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Tempo Gasto no Atendimento</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#37558d]" />
+                Tempo Gasto no Atendimento *
               </label>
               <input
                 type="text"
                 value={timeSpent}
                 onChange={(e) => setTimeSpent(e.target.value)}
                 placeholder="Ex: 00h 45m"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d]"
                 required
               />
             </div>
 
             {!selectedKbArticle && (
-              <div className="pt-4">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+              <div className="pt-2 sm:pt-4">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 font-semibold">
                   <input
                     type="checkbox"
                     checked={saveAsNewKb}
                     onChange={(e) => setSaveAsNewKb(e.target.checked)}
-                    className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
+                    className="rounded border-slate-300 text-[#37558d] focus:ring-[#37558d] cursor-pointer"
                   />
-                  <span>Catalogar nova solução na Base de Conhecimento</span>
+                  <span>Catalogar como novo artigo na Base de Conhecimento</span>
                 </label>
               </div>
             )}
           </div>
 
-          {/* Title for new KB if checked */}
+          {/* Title for new KB article if checked */}
           {saveAsNewKb && (
-            <div className="animate-in fade-in duration-150">
-              <label className="block text-xs font-semibold text-slate-200 mb-1">
+            <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl animate-in fade-in duration-150">
+              <label className="block text-xs font-semibold text-[#37558d] mb-1">
                 Título do Novo Artigo da Base de Conhecimento
               </label>
               <input
@@ -336,45 +429,55 @@ export const TicketFinalizeModal: React.FC<TicketFinalizeModalProps> = ({
                 value={newKbTitle}
                 onChange={(e) => setNewKbTitle(e.target.value)}
                 placeholder={`Ex: Resolução de ${ticket.subject}`}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-[#37558d]"
               />
             </div>
           )}
 
           {/* 5. Highlight notice: Integration with Formulários & Registro de Atividades */}
-          <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-600/40 text-xs text-emerald-200 flex items-start gap-2.5">
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-white">
-                Vínculo Automático com Formulários & Banco de Atividades
+              <p className="font-bold text-emerald-900">
+                Vínculo Automático com Banco de Atividades & Excel
               </p>
-              <p className="text-[11px] text-emerald-300/80 mt-0.5">
-                Ao finalizar, o sistema gera instantaneamente uma atividade vinculada com{' '}
-                <strong>Colaborador ({currentUser.name})</strong> e{' '}
-                <strong>Setor ({currentUser.sector})</strong>, pronta para ser filtrada e exportada em Excel.
+              <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
+                Ao finalizar, o sistema gera automaticamente uma atividade vinculada ao colaborador{' '}
+                <strong className="text-emerald-950 font-semibold">({currentUser.name})</strong> e ao setor{' '}
+                <strong className="text-emerald-950 font-semibold">({currentUser.sector})</strong>, pronta para ser filtrada e exportada.
               </p>
             </div>
           </div>
+        </form>
 
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+        {/* Modal Actions Footer */}
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="text-[11px] text-slate-500 hidden sm:block">
+            Chamado: <strong className="text-slate-800">{ticket.id}</strong> • Operador: <strong className="text-slate-800">{currentUser.name}</strong>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
+
             <button
-              type="submit"
+              type="button"
               disabled={isSubmitting || !resolutionSummary.trim()}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer"
+              onClick={handleSubmit}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? 'Encerrando Chamado...' : 'Finalizar Chamado & Gerar Atividade'}</span>
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span className="text-white">
+                {isSubmitting ? 'Encerrando Chamado...' : 'Finalizar Chamado & Gerar Atividade'}
+              </span>
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

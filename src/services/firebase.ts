@@ -52,6 +52,28 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Universal deep sanitizer: removes undefined values from objects & arrays to prevent Firestore setDoc/updateDoc errors
+export function sanitizeFirestoreDoc<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+        result[key] = sanitizeFirestoreDoc(val);
+      } else if (Array.isArray(val)) {
+        result[key] = val.map(item => {
+          if (item !== null && typeof item === 'object' && !(item instanceof Date)) {
+            return sanitizeFirestoreDoc(item);
+          }
+          return item === undefined ? null : item;
+        });
+      } else {
+        result[key] = val;
+      }
+    }
+  }
+  return result;
+}
+
 // Connection test on boot
 export async function testConnection(): Promise<{ success: boolean; message: string }> {
   try {

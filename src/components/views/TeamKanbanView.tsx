@@ -14,9 +14,10 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { SECTORS, MOCK_COLLABORATORS, CURRENT_USER } from '../../data/mockData';
+import { SECTORS, CURRENT_USER } from '../../data/mockData';
 import { Task, TaskStatus, Sector, Priority, Collaborator } from '../../types';
 import { taskService } from '../../services/taskService';
+import { dbService } from '../../services/dbService';
 
 interface TeamKanbanViewProps {
   currentUser?: Collaborator;
@@ -31,6 +32,7 @@ export const TeamKanbanView: React.FC<TeamKanbanViewProps> = ({
   const [selectedWeek, setSelectedWeek] = useState('14/09/2026 → 20/09/2026');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [firebaseUsers, setFirebaseUsers] = useState<Collaborator[]>([]);
   const [activeTaskDetail, setActiveTaskDetail] = useState<Task | null>(null);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -46,7 +48,14 @@ export const TeamKanbanView: React.FC<TeamKanbanViewProps> = ({
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubUsers = dbService.subscribeUsers((users) => {
+      setFirebaseUsers(users);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubUsers();
+    };
   }, []);
 
   const teamColumns: { id: TaskStatus; label: string }[] = [
@@ -56,8 +65,8 @@ export const TeamKanbanView: React.FC<TeamKanbanViewProps> = ({
     { id: 'CONCLUIDO', label: 'CONCLUÍDO' }
   ];
 
-  // Sector members
-  const sectorMembers = MOCK_COLLABORATORS.filter(c => c.sector === selectedSector);
+  // Sector members (strictly Firebase users)
+  const sectorMembers = firebaseUsers.filter(c => c.sector === selectedSector);
 
   const currentSectorTasks = tasks.filter(t => 
     selectedSector === 'TODOS' ? true : (t.sector && t.sector.toLowerCase() === selectedSector.toLowerCase()) || (!t.sector && selectedSector === 'Suporte N2')

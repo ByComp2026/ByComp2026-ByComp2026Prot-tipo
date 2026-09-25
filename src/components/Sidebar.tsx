@@ -101,9 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'meu_kanban', label: 'Meu Kanban', icon: Kanban },
         { id: 'kanban_equipe', label: 'Kanban da Equipe', icon: Kanban, badge: 'Admin'},
         { id: 'visao_semanal', label: 'Planejamento Semanal', icon: Calendar, badge: 'Admin'},
-        { id: 'planilhas', label: 'Base de Atividades', icon: FileSpreadsheet, badge: 'Admin'},
-        { id: 'formularios', label: 'Formulários & Banco', icon: FolderEdit, badge: 'Admin'},
-        { id: 'registro_atividades', label: 'Registrar Atividade', icon: FileText}
+        { id: 'planilhas', label: 'Base de Atividades', icon: FileSpreadsheet, badge: 'Admin'}
       ]
     },
     {

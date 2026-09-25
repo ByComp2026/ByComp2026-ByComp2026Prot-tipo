@@ -1,13 +1,9 @@
 import { SupportTicket, ActivityRecord, KnowledgeArticle, Collaborator, Sector, Priority } from '../types';
-import { TICKETS_DATA, SMART_SPREADSHEET_DATA } from '../data/mockData';
-import { INITIAL_FORM_SUBMISSIONS } from '../data/formSubmissions';
 import { KNOWLEDGE_BASE_DATA } from '../data/knowledgeBase';
-import { FormSubmissionRecord } from '../utils/excelExport';
 
 const STORAGE_KEYS = {
   TICKETS: 'bycomp_tickets_v1',
   ACTIVITIES: 'bycomp_activities_v1',
-  SUBMISSIONS: 'bycomp_form_submissions_v1',
   KNOWLEDGE_BASE: 'bycomp_knowledge_base_v1'
 };
 
@@ -16,7 +12,6 @@ type Listener = () => void;
 class ActivitySyncService {
   private tickets: SupportTicket[] = [];
   private activities: ActivityRecord[] = [];
-  private submissions: FormSubmissionRecord[] = [];
   private knowledgeBase: KnowledgeArticle[] = [];
   private listeners: Set<Listener> = new Set();
 
@@ -25,8 +20,7 @@ class ActivitySyncService {
   }
 
   private initData() {
-    // 1. Tickets: Clean queue - all mock tickets removed as requested by user.
-    // Tickets are now created and validated directly in Firebase Firestore.
+    // 1. Tickets: Clean queue - all tickets handled directly in Firebase Firestore / state
     try {
       localStorage.removeItem(STORAGE_KEYS.TICKETS);
       this.tickets = [];
@@ -34,33 +28,15 @@ class ActivitySyncService {
       this.tickets = [];
     }
 
-    // 2. Activities (Base de Atividades / Smart Spreadsheet)
+    // 2. Activities (Base de Atividades / Smart Spreadsheet - strictly clean, synchronized with Firebase)
     try {
-      const storedActivities = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
-      if (storedActivities) {
-        this.activities = JSON.parse(storedActivities);
-      } else {
-        this.activities = [...SMART_SPREADSHEET_DATA];
-        this.saveActivities();
-      }
+      localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
+      this.activities = [];
     } catch {
-      this.activities = [...SMART_SPREADSHEET_DATA];
+      this.activities = [];
     }
 
-    // 3. Form Submissions (Formulários & Banco)
-    try {
-      const storedSubmissions = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
-      if (storedSubmissions) {
-        this.submissions = JSON.parse(storedSubmissions);
-      } else {
-        this.submissions = [...INITIAL_FORM_SUBMISSIONS];
-        this.saveSubmissions();
-      }
-    } catch {
-      this.submissions = [...INITIAL_FORM_SUBMISSIONS];
-    }
-
-    // 4. Knowledge Base (Fase 6)
+    // 3. Knowledge Base
     try {
       const storedKB = localStorage.getItem(STORAGE_KEYS.KNOWLEDGE_BASE);
       if (storedKB) {
@@ -87,14 +63,6 @@ class ActivitySyncService {
       localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(this.activities));
     } catch (e) {
       console.warn('Could not save activities to localStorage', e);
-    }
-  }
-
-  private saveSubmissions() {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(this.submissions));
-    } catch (e) {
-      console.warn('Could not save submissions to localStorage', e);
     }
   }
 
@@ -288,6 +256,7 @@ class ActivitySyncService {
    */
   public finalizeTicket(params: {
     ticketId: string;
+    ticket?: SupportTicket;
     currentUser: Collaborator;
     serviceType: string;
     resolutionSummary: string;
@@ -299,15 +268,39 @@ class ActivitySyncService {
   }): {
     ticket: SupportTicket;
     activity: ActivityRecord;
-    submission: FormSubmissionRecord;
   } {
-    const ticket = this.tickets.find(t => t.id === params.ticketId);
-    if (!ticket) throw new Error(`Chamado ${params.ticketId} não encontrado.`);
+    let ticket = this.tickets.find(t => t.id === params.ticketId);
+    if (!ticket) {
+      if (params.ticket) {
+        ticket = { ...params.ticket };
+        this.tickets.push(ticket);
+      } else {
+        const fallbackTicket: SupportTicket = {
+          id: params.ticketId,
+          protocol: `PROTO-${params.ticketId}`,
+          title: `Chamado #${params.ticketId}`,
+          subject: `Chamado #${params.ticketId}`,
+          description: params.resolutionSummary,
+          client: 'Cliente',
+          sector: params.currentUser.sector,
+          priority: 'Média',
+          status: 'Resolvido',
+          collaborator: params.currentUser.name,
+          assignedTo: params.currentUser.name,
+          createdAt: new Date().toLocaleDateString('pt-BR'),
+          createdDate: new Date().toLocaleDateString('pt-BR'),
+          createdTime: '08:00',
+          slaHours: 4,
+          history: []
+        };
+        ticket = fallbackTicket;
+        this.tickets.push(ticket);
+      }
+    }
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('pt-BR');
     const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const isoDate = now.toISOString().slice(0, 10);
 
     // 1. Update Ticket
     ticket.status = 'Resolvido';
@@ -336,6 +329,8 @@ class ActivitySyncService {
         kbArticle.lastUpdated = dateStr;
       }
     } else if (params.saveToKb && params.newKbTitle) {
+      const clientName = ticket.client || 'Cliente';
+      const ticketSubject = ticket.subject || ticket.title || 'Chamado Técnico';
       const newArticle: KnowledgeArticle = {
         id: `KB-AUTO-${Date.now().toString().slice(-4)}`,
         code: `RESOLV-${params.currentUser.sector.toUpperCase().slice(0, 3)}-${String(this.knowledgeBase.length + 1).padStart(2, '0')}`,
@@ -345,12 +340,12 @@ class ActivitySyncService {
         category: 'Aplicações & APIs',
         summarySolution: params.resolutionSummary,
         detailedProcedure: [
-          `Identificado chamado técnico para cliente ${ticket.client}: ${ticket.subject}.`,
+          `Identificado chamado técnico para cliente ${clientName}: ${ticketSubject}.`,
           `Execução do procedimento técnico: ${params.resolutionSummary}.`,
           `Validação funcional com tempo de resolução de ${params.timeSpent || '00h 45m'}.`
         ],
         estimatedResolutionMinutes: 45,
-        tags: [params.serviceType.toLowerCase(), ticket.client.toLowerCase(), 'resolvido'],
+        tags: [params.serviceType.toLowerCase(), clientName.toLowerCase(), 'resolvido'],
         usefulCount: 1,
         lastUpdated: dateStr,
         author: params.currentUser.name
@@ -367,51 +362,27 @@ class ActivitySyncService {
       time: timeStr,
       collaborator: params.currentUser.name,
       sector: params.currentUser.sector,
-      activity: `[Chamado ${ticket.id}] ${ticket.subject} — ${params.serviceType}`,
-      priority: ticket.priority,
+      activity: `[Chamado ${ticket.id}] ${ticket.subject || ticket.title || 'Chamado'} — ${params.serviceType}`,
+      priority: ticket.priority || 'Média',
       status: 'Concluído',
       timeSpent: params.timeSpent || '00h 45m',
-      observation: `Solução: ${params.resolutionSummary}. Cliente: ${ticket.client}. Finalizado via Help Desk (Fases 5 e 6).`,
+      observation: `Solução: ${params.resolutionSummary}. Cliente: ${ticket.client || 'Cliente'}. Finalizado via Help Desk.`,
       attachment: `laudo-resolucao-${cleanTicketNum}.pdf`
     };
 
     // Insert at beginning of activities
     this.activities = [newActivity, ...this.activities];
 
-    // 4. Create Form Submission for FormsView ("Registro de atividade" - form-1)
-    const newSubmission: FormSubmissionRecord = {
-      id: `REG-TK-${cleanTicketNum}`,
-      formId: 'form-1',
-      formTitle: 'Registro de atividade',
-      submittedAt: `${dateStr} ${timeStr}`,
-      submittedBy: `${params.currentUser.name} (${params.currentUser.sector})`,
-      status: 'Aprovado',
-      values: {
-        f_colab: `${params.currentUser.name} (${params.currentUser.sector})`,
-        f_setor: params.currentUser.sector,
-        f_data: isoDate,
-        f_titulo: `[Chamado ${ticket.id}] ${ticket.subject} — ${params.serviceType}`,
-        f_desc: `Solução: ${params.resolutionSummary}. Atendimento concluído com sucesso para o cliente ${ticket.client}.`,
-        f_prioridade: ticket.priority,
-        f_tempo: params.timeSpent || '00h 45m',
-        f_obs: `Atendimento técnico finalizado no Help Desk. Base de Conhecimento vinculada: ${params.kbArticleId || 'Registro Direto'}.`
-      }
-    };
-
-    this.submissions = [newSubmission, ...this.submissions];
-
     // Save everything
     this.saveTickets();
     this.saveActivities();
-    this.saveSubmissions();
     this.saveKB();
 
     this.notify();
 
     return {
       ticket,
-      activity: newActivity,
-      submission: newSubmission
+      activity: newActivity
     };
   }
 
@@ -426,14 +397,14 @@ class ActivitySyncService {
     this.notify();
   }
 
-  // --- SUBMISSIONS API ---
-  public getSubmissions(): FormSubmissionRecord[] {
-    return [...this.submissions];
-  }
-
-  public addSubmission(submission: FormSubmissionRecord) {
-    this.submissions = [submission, ...this.submissions];
-    this.saveSubmissions();
+  public purgeNonFirebaseActivities(validNames: string[]) {
+    if (!validNames || validNames.length === 0) return;
+    const cleanValid = validNames.map(n => n.trim().toLowerCase());
+    this.activities = this.activities.filter(act => {
+      const actName = (act.collaborator || '').trim().toLowerCase();
+      return cleanValid.includes(actName);
+    });
+    this.saveActivities();
     this.notify();
   }
 
@@ -448,11 +419,10 @@ class ActivitySyncService {
     this.notify();
   }
 
-  // Reset to initial mock data if needed
+  // Reset to initial data if needed
   public resetToDefault() {
     localStorage.removeItem(STORAGE_KEYS.TICKETS);
     localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
-    localStorage.removeItem(STORAGE_KEYS.SUBMISSIONS);
     localStorage.removeItem(STORAGE_KEYS.KNOWLEDGE_BASE);
     this.initData();
     this.notify();
